@@ -129,11 +129,11 @@ export function buildPaidTransitionPostText(
   }
   const render = (title: string): string =>
     [
-      "🎁 無料配布きたで",
+      "⚠️ もうすぐ有料になるで",
       "",
       `『${title}』`,
       `現在無料 → ${timing}`,
-      "もらえるもんは、もろとこ。",
+      "もらえるもんは、今のうちにもろとこ。",
       "",
       transition.storeUrl,
       "",

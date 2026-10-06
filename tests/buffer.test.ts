@@ -37,11 +37,11 @@ describe("Buffer publisher", () => {
     assert.equal(
       text,
       [
-        "🎁 無料配布きたで",
+        "⚠️ もうすぐ有料になるで",
         "",
         "『Eco inc. Save the Earth』",
         "現在無料 → 10月13日以降に有料化予定",
-        "もらえるもんは、もろとこ。",
+        "もらえるもんは、今のうちにもろとこ。",
         "",
         "https://store.steampowered.com/app/2236920/",
         "",
