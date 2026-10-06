@@ -73,6 +73,10 @@ export class BufferPublisher {
   ) {}
 
   async publish(campaign: CampaignState): Promise<{ id: string }> {
+    return this.publishText(buildPostText(campaign));
+  }
+
+  async publishText(text: string): Promise<{ id: string; status: string }> {
     const response = await this.fetchImpl(BUFFER_API_URL, {
       method: "POST",
       headers: {
@@ -93,7 +97,7 @@ export class BufferPublisher {
         `,
         variables: {
           input: {
-            text: buildPostText(campaign),
+            text,
             channelId: this.credentials.channelId,
             schedulingType: "automatic",
             mode: "shareNow",
@@ -127,6 +131,6 @@ export class BufferPublisher {
         `Buffer rejected the post: ${result?.message ?? result?.__typename ?? "unknown error"}`,
       );
     }
-    return { id: result.post.id };
+    return { id: result.post.id, status: result.post.status };
   }
 }

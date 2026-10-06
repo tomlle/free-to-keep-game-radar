@@ -53,6 +53,7 @@ describe("Buffer publisher", () => {
     );
     assert.deepEqual(await publisher.publish(campaign), {
       id: "buffer-post-id",
+      status: "sent",
     });
 
     const variables = requestBody?.variables as {

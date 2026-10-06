@@ -5,6 +5,12 @@ on:
     - cron: "17 4 * * *"
       timezone: "Asia/Tokyo"
   workflow_dispatch:
+    inputs:
+      verify_buffer:
+        description: "Send one visible Buffer-to-X connection test post"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -33,6 +39,13 @@ jobs:
 
       - name: Verify
         run: npm run check
+
+      - name: Send Buffer-to-X connection test
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.verify_buffer }}
+        run: npm run verify:buffer
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_CHANNEL_ID: ${{ secrets.BUFFER_CHANNEL_ID }}
 
       - name: Detect and publish
         id: radar

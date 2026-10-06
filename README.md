@@ -76,6 +76,10 @@ query GetChannels {
 
 投稿はBufferの `shareNow` を使用して即時送信します。X Developer AppやX APIクレジットは不要です。Buffer無料プランのAPIリクエスト数や投稿数の制限は、Bufferの最新プラン条件に従います。
 
+### 接続テスト
+
+Actionsの `Daily free-to-keep scan` を手動実行し、`Send one visible Buffer-to-X connection test post`を有効にすると、日時入りのテスト投稿を1件だけ即時送信します。この入力は定期実行では使用されません。
+
 ## レポート
 
 レポートは上書きせず、Run IDとAttemptを含む名前で毎回新規作成します。
