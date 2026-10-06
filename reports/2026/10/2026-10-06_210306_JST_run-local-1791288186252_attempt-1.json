@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "run": {
+    "runId": "local-1791288186252",
+    "attempt": 1,
+    "event": "local",
+    "startedAt": "2026-10-06T12:03:06.251Z",
+    "finishedAt": "2026-10-06T12:03:06.483Z",
+    "timezone": "Asia/Tokyo",
+    "status": "success"
+  },
+  "detection": {
+    "searched": 0,
+    "candidates": 0,
+    "verified": 0,
+    "newPromotions": 0,
+    "knownPromotions": 0,
+    "excluded": 0
+  },
+  "posting": {
+    "succeeded": 0,
+    "failed": 0,
+    "skipped": 0
+  },
+  "activePromotions": [],
+  "posts": [],
+  "errors": []
+}

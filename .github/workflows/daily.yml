@@ -1,0 +1,67 @@
+name: Daily free-to-keep scan
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+      timezone: "Asia/Tokyo"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: free-to-keep-game-radar
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify
+        run: npm run check
+
+      - name: Detect and publish
+        id: radar
+        continue-on-error: true
+        run: npm start
+        env:
+          POST_TO_X: ${{ vars.POST_TO_X }}
+          STEAM_COUNTRY: ${{ vars.STEAM_COUNTRY }}
+          STEAM_LANGUAGE: ${{ vars.STEAM_LANGUAGE }}
+          X_APP_KEY: ${{ secrets.X_APP_KEY }}
+          X_APP_SECRET: ${{ secrets.X_APP_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+
+      - name: Commit state and append-only reports
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "free-to-keep-game-radar[bot]"
+          git config user.email "free-to-keep-game-radar[bot]@users.noreply.github.com"
+          git add data/state.json reports/
+
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+
+          git commit -m "Add radar report for $(date -u +%Y-%m-%d)"
+          git push
+
+      - name: Propagate radar failure
+        if: steps.radar.outcome == 'failure'
+        run: exit 1
