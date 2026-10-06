@@ -75,12 +75,11 @@ export function buildPostText(campaign: CampaignState): string {
     ];
     if (campaign.endsAt) lines.push(`⏰ ${formatJst(campaign.endsAt)}まで`);
     lines.push(
-      "Steam / Epic Gamesなどの期間限定無料配布をお知らせ。",
       "もらえるもんは、もろとこ。",
       "",
       campaign.storeUrl,
       "",
-      "#ゲーム無料配布 #Steam",
+      "#ゲーム無料配布 #Steam #もろとこ",
     );
     return lines.join("\n");
   };

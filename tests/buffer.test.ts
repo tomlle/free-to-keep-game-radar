@@ -33,6 +33,8 @@ describe("Buffer publisher", () => {
     assert.match(text, /100% OFF/u);
     assert.match(text, /無料配布きたで/u);
     assert.match(text, /もらえるもんは、もろとこ。/u);
+    assert.match(text, /#ゲーム無料配布 #Steam #もろとこ/u);
+    assert.doesNotMatch(text, /Epic Gamesなど/u);
     assert.match(text, /https:\/\/store\.steampowered\.com\/app\/100\//u);
     assert.ok(xWeightedLength(text) <= 280);
   });
