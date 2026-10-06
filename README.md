@@ -1,6 +1,6 @@
 # free-to-keep-game-radar
 
-Steamで期間限定の100%割引になったゲームを検出し、新規キャンペーンだけをBuffer経由でXへ投稿するGitHub Actions Botです。各実行について、人間向けMarkdownと分析向けJSONのレポートを追記保存します。
+Steamで期間限定の100%割引になったゲームと、無料取得者が保持できる有料化予定ゲームを検出し、新規案件だけをBuffer経由でXへ投稿するGitHub Actions Botです。各実行について、人間向けMarkdownと分析向けJSONのレポートを追記保存します。
 
 ## 対象
 
@@ -23,8 +23,9 @@ GitHub Actionsが毎日04:17（Asia/Tokyo）に以下を実行します。
 2. Steamの商品詳細でゲーム種別、通常価格、割引率を再検証
 3. `data/state.json`と比較して新規キャンペーンを判定
 4. 有効化されていればXへ投稿
-5. `reports/YYYY/MM/`へMarkdownとJSONを新規作成
-6. 状態とレポートをリポジトリへcommit
+5. Free-to-Keep処理後、監視リストの公式ニュースから有料化予定を検出・投稿
+6. `reports/YYYY/MM/`へMarkdownとJSONを新規作成
+7. 状態とレポートをリポジトリへcommit
 
 同一ゲームでも、配布終了を2回連続で確認した後に再配布された場合は、新しいキャンペーンとして扱います。
 
@@ -74,6 +75,8 @@ query GetChannels {
 | `STEAM_COUNTRY`  | `JP`       | 判定対象の国                                             |
 | `STEAM_LANGUAGE` | `japanese` | Steamレスポンスの言語                                    |
 
+有料化予定の監視対象は `data/paid-transition-watchlist.json` で管理します。追加のApp IDをリポジトリを変更せず監視する場合は、Actions Variable `STEAM_PAID_TRANSITION_APP_IDS` にカンマ区切りで指定できます。検出にはSteam公式ニュースを使用し、日本向けストアで現在無料かつ、無料取得者が有料化後もアクセスを保持できると明記されたゲームだけを投稿します。
+
 投稿はBufferの `shareNow` を使用して即時送信します。X Developer AppやX APIクレジットは不要です。Buffer無料プランのAPIリクエスト数や投稿数の制限は、Bufferの最新プラン条件に従います。
 
 投稿文はXの加重文字数上限（280）を安全側に計算します。長いゲーム名は書記素単位で末尾を `…` に省略し、絵文字の結合列を途中で分割せず、案内文・配布URL・ハッシュタグを必ず残します。
@@ -91,6 +94,8 @@ reports/2026/10/
 ├─ 2026-10-07_041723_JST_run-123456789_attempt-1.md
 └─ 2026-10-07_041723_JST_run-123456789_attempt-1.json
 ```
+
+有料化予定のレポートは `reports/paid-transitions/YYYY/MM/` に同じく追記保存します。
 
 レポートには実行日時、検出件数、投稿結果、現在配布中の商品、エラーを記録します。秘密情報や外部サービスのレスポンス全文は記録しません。
 

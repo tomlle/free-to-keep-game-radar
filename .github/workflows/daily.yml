@@ -47,8 +47,8 @@ jobs:
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
           BUFFER_CHANNEL_ID: ${{ secrets.BUFFER_CHANNEL_ID }}
 
-      - name: Detect and publish
-        id: radar
+      - name: Detect and publish Free-to-Keep promotions
+        id: free_to_keep
         continue-on-error: true
         run: npm start
         env:
@@ -58,13 +58,24 @@ jobs:
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
           BUFFER_CHANNEL_ID: ${{ secrets.BUFFER_CHANNEL_ID }}
 
+      - name: Detect and publish upcoming paid games
+        id: paid_transitions
+        continue-on-error: true
+        run: npm run start:paid-transitions
+        env:
+          POST_TO_X: ${{ vars.POST_TO_X }}
+          STEAM_COUNTRY: ${{ vars.STEAM_COUNTRY }}
+          STEAM_PAID_TRANSITION_APP_IDS: ${{ vars.STEAM_PAID_TRANSITION_APP_IDS }}
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_CHANNEL_ID: ${{ secrets.BUFFER_CHANNEL_ID }}
+
       - name: Commit state and append-only reports
         if: always()
         shell: bash
         run: |
           git config user.name "free-to-keep-game-radar[bot]"
           git config user.email "free-to-keep-game-radar[bot]@users.noreply.github.com"
-          git add data/state.json reports/
+          git add data/state.json data/paid-transition-state.json reports/
 
           if git diff --cached --quiet; then
             exit 0
@@ -74,5 +85,5 @@ jobs:
           git push
 
       - name: Propagate radar failure
-        if: steps.radar.outcome == 'failure'
+        if: steps.free_to_keep.outcome == 'failure' || steps.paid_transitions.outcome == 'failure'
         run: exit 1

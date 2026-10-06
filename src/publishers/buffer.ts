@@ -10,6 +10,12 @@ export interface BufferCredentials {
   channelId: string;
 }
 
+export interface PaidTransitionPost {
+  title: string;
+  storeUrl: string;
+  notBeforeAt?: string;
+}
+
 interface BufferResponse {
   data?: {
     createPost?: {
@@ -101,6 +107,57 @@ export function buildPostText(campaign: CampaignState): string {
   const result = render(`${shortened}…`);
   if (xWeightedLength(result) > X_WEIGHTED_LENGTH_LIMIT) {
     throw new Error("X post template exceeds the weighted character limit");
+  }
+  return result;
+}
+
+export function buildPaidTransitionPostText(
+  transition: PaidTransitionPost,
+): string {
+  let timing = "近日中に有料化予定";
+  if (transition.notBeforeAt) {
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat("ja-JP", {
+        timeZone: "Asia/Tokyo",
+        month: "numeric",
+        day: "numeric",
+      })
+        .formatToParts(new Date(transition.notBeforeAt))
+        .map(({ type, value }) => [type, value]),
+    );
+    timing = `${parts.month}月${parts.day}日以降に有料化予定`;
+  }
+  const render = (title: string): string =>
+    [
+      "🎁 無料配布きたで",
+      "",
+      `『${title}』`,
+      `現在無料 → ${timing}`,
+      "もらえるもんは、もろとこ。",
+      "",
+      transition.storeUrl,
+      "",
+      "#ゲーム無料配布 #Steam #もろとこ",
+    ].join("\n");
+  const complete = render(transition.title);
+  if (xWeightedLength(complete) <= X_WEIGHTED_LENGTH_LIMIT) return complete;
+
+  const segmenter = new Intl.Segmenter("ja", { granularity: "grapheme" });
+  let shortened = "";
+  for (const { segment } of segmenter.segment(transition.title)) {
+    if (
+      xWeightedLength(render(`${shortened}${segment}…`)) >
+      X_WEIGHTED_LENGTH_LIMIT
+    ) {
+      break;
+    }
+    shortened += segment;
+  }
+  const result = render(`${shortened}…`);
+  if (xWeightedLength(result) > X_WEIGHTED_LENGTH_LIMIT) {
+    throw new Error(
+      "Paid-transition X post exceeds the weighted character limit",
+    );
   }
   return result;
 }

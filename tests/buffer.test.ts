@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   BufferPublisher,
+  buildPaidTransitionPostText,
   buildPostText,
   xWeightedLength,
 } from "../src/publishers/buffer.js";
@@ -27,6 +28,29 @@ const campaign: CampaignState = {
 };
 
 describe("Buffer publisher", () => {
+  it("builds an upcoming-paid post with hashtags at the end", () => {
+    const text = buildPaidTransitionPostText({
+      title: "Eco inc. Save the Earth",
+      storeUrl: "https://store.steampowered.com/app/2236920/",
+      notBeforeAt: "2026-10-12T16:02:16.000Z",
+    });
+    assert.equal(
+      text,
+      [
+        "🎁 無料配布きたで",
+        "",
+        "『Eco inc. Save the Earth』",
+        "現在無料 → 10月13日以降に有料化予定",
+        "もらえるもんは、もろとこ。",
+        "",
+        "https://store.steampowered.com/app/2236920/",
+        "",
+        "#ゲーム無料配布 #Steam #もろとこ",
+      ].join("\n"),
+    );
+    assert.ok(xWeightedLength(text) <= 280);
+  });
+
   it("builds an X post containing the promotion link", () => {
     const text = buildPostText(campaign);
     assert.match(text, /Test Game/u);
