@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "run": {
+    "runId": "37461861771",
+    "attempt": 1,
+    "event": "workflow_dispatch",
+    "startedAt": "2026-10-06T12:14:52.850Z",
+    "finishedAt": "2026-10-06T12:14:53.072Z",
+    "timezone": "Asia/Tokyo",
+    "status": "success",
+    "actionsUrl": "https://github.com/tomlle/free-to-keep-game-radar/actions/runs/37461861771"
+  },
+  "detection": {
+    "searched": 0,
+    "candidates": 0,
+    "verified": 0,
+    "newPromotions": 0,
+    "knownPromotions": 0,
+    "excluded": 0
+  },
+  "posting": {
+    "succeeded": 0,
+    "failed": 0,
+    "skipped": 0
+  },
+  "activePromotions": [],
+  "posts": [],
+  "errors": []
+}
