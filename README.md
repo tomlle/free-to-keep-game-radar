@@ -1,114 +1,136 @@
 # free-to-keep-game-radar
 
-Steamで期間限定の100%割引になったゲームと、無料取得者が保持できる有料化予定ゲームを検出し、新規案件だけをBuffer経由でXへ投稿するGitHub Actions Botです。各実行について、人間向けMarkdownと分析向けJSONのレポートを追記保存します。
+日本向けゲームストアの「今だけ無料で入手し、配布終了後も遊べるゲーム」を見つけてXへ投稿するBotです。
 
-## 対象
+現在はSteamに対応し、次の2種類を監視しています。
 
-次の条件を満たすSteam商品だけを対象にします。
+- 有料ゲームの期間限定100%割引（Free-to-Keep）
+- 現在は無料だが、今後有料化されるゲーム
 
-- 種別がゲーム
+検出、投稿、状態更新、実行レポートの保存までGitHub Actionsだけで動作します。
+
+## 投稿例
+
+### Free-to-Keep
+
+```text
+🎁 無料配布きたで
+
+『ゲームタイトル』
+¥1,200 → 無料（100% OFF）
+⏰ 10/8 09:00まで
+もらえるもんは、もろとこ。
+
+https://store.steampowered.com/app/000000/
+
+#ゲーム無料配布 #Steam #もろとこ
+```
+
+### 有料化予定
+
+```text
+⚠️ もうすぐ有料になるで
+
+『ゲームタイトル』
+現在無料 → 10月13日以降に有料化予定
+もらえるもんは、今のうちにもろとこ。
+
+https://store.steampowered.com/app/000000/
+
+#ゲーム無料配布 #Steam #もろとこ
+```
+
+有料化の正確な日付が発表されていない場合は「近日中に有料化予定」と表示します。投稿文はXの加重文字数上限を計算し、必要な場合はゲームタイトルだけを書記素単位で省略します。URLとハッシュタグは必ず残ります。
+
+## 検出条件
+
+### Free-to-Keep
+
+以下をすべて満たすSteam商品を対象にします。
+
+- 商品種別がゲーム
 - 通常価格が0より大きい
 - 現在価格が0
 - 割引率が100%
-- 常時無料（F2P）ではない
+- 常時無料（Free to Play）ではない
 - 日本向けSteamストアで取得可能
 
-無料週末、デモ、DLC、常時無料ゲーム、「現在はF2Pだが将来有料化予定」のゲームは対象外です。
+無料週末、デモ、DLC、常時無料ゲームは除外します。
 
-## 動作
+### 有料化予定
 
-GitHub Actionsが毎日04:17（Asia/Tokyo）に以下を実行します。
+監視リストに登録されたゲームについて、Steam公式の商品情報とニュースを確認します。以下をすべて満たす場合だけ投稿します。
 
-1. Steam Store検索から100%割引候補を取得
-2. Steamの商品詳細でゲーム種別、通常価格、割引率を再検証
-3. `data/state.json`と比較して新規キャンペーンを判定
-4. 有効化されていればXへ投稿
-5. Free-to-Keep処理後、監視リストの公式ニュースから有料化予定を検出・投稿
-6. `reports/YYYY/MM/`へMarkdownとJSONを新規作成
-7. 状態とレポートをリポジトリへcommit
+- 商品種別がゲーム
+- 日本向けSteamストアで現在無料
+- 公式ニュースに無料から有料へ移行する旨が記載されている
+- 無料期間中の取得者が、有料化後もアクセスを保持できると明記されている
 
-同一ゲームでも、配布終了を2回連続で確認した後に再配布された場合は、新しいキャンペーンとして扱います。
+監視対象は [`data/paid-transition-watchlist.json`](data/paid-transition-watchlist.json) で管理しています。Steamには有料化予定の全ゲームを列挙するAPIがないため、この検出は監視リスト方式です。
 
-## GitHub設定
+## 処理の流れ
 
-Steamの検出にAPIキーやログイン情報は不要です。X投稿には無料のBufferアカウントを使用します。BufferでXチャンネルを接続した後、Repository Settingsの `Secrets and variables` → `Actions` に以下を登録します。
+毎日04:17（Asia/Tokyo）に、次の順番で実行します。
 
-### Secrets
+1. Steam Storeから100%割引候補を取得
+2. 商品詳細を使ってFree-to-Keepの条件を再検証
+3. 未投稿のキャンペーンをXへ投稿
+4. Free-to-Keepの処理完了後、有料化予定の監視リストを検査
+5. 未投稿の有料化告知をXへ投稿
+6. 状態と実行レポートをリポジトリへ保存
 
-| 名前                | 内容                                        |
-| ------------------- | ------------------------------------------- |
-| `BUFFER_API_KEY`    | Buffer Personal API Key（`postsWrite`権限） |
-| `BUFFER_CHANNEL_ID` | Bufferに接続したXチャンネルのChannel ID     |
+投稿状態をリポジトリ内に保持するため、同じキャンペーンやニュースは重複投稿しません。Free-to-Keepは終了を2回連続で確認した後に非アクティブ化し、後日再び無料配布された場合は新しいキャンペーンとして扱います。
 
-APIキーはBufferの `Settings` → `API` → `Personal Access` で作成します。有効期限は最長1年で、期限前に再生成してGitHub Secretを更新する必要があります。Channel IDはBuffer API Explorerで、まずOrganization IDを取得します。
+## ディレクトリ構成
 
-```graphql
-query GetOrganizations {
-  account {
-    organizations {
-      id
-      name
-    }
-  }
-}
+```text
+.
+├─ .github/workflows/       GitHub Actions
+├─ data/                    検出対象と重複投稿防止の状態
+├─ reports/                 Free-to-Keepの実行レポート
+│  └─ paid-transitions/     有料化予定の実行レポート
+├─ src/
+│  ├─ providers/            ストアごとの検出処理
+│  └─ publishers/           投稿処理
+└─ tests/                   単体テスト
 ```
-
-次に取得したIDを指定してチャンネルを取得します。
-
-```graphql
-query GetChannels {
-  channels(input: { organizationId: "取得したOrganization ID" }) {
-    id
-    name
-    service
-  }
-}
-```
-
-レスポンス内で `service` が `twitter` のチャンネルIDを使用してください。認証情報はファイルやログへ保存しないでください。
-
-### Variables
-
-| 名前             | 推奨値     | 説明                                                     |
-| ---------------- | ---------- | -------------------------------------------------------- |
-| `POST_TO_X`      | `true`     | `true`の場合だけXへ投稿。未設定時は投稿せずpendingを維持 |
-| `STEAM_COUNTRY`  | `JP`       | 判定対象の国                                             |
-| `STEAM_LANGUAGE` | `japanese` | Steamレスポンスの言語                                    |
-
-有料化予定の監視対象は `data/paid-transition-watchlist.json` で管理します。追加のApp IDをリポジトリを変更せず監視する場合は、Actions Variable `STEAM_PAID_TRANSITION_APP_IDS` にカンマ区切りで指定できます。検出にはSteam公式ニュースを使用し、日本向けストアで現在無料かつ、無料取得者が有料化後もアクセスを保持できると明記されたゲームだけを投稿します。
-
-投稿はBufferの `shareNow` を使用して即時送信します。X Developer AppやX APIクレジットは不要です。Buffer無料プランのAPIリクエスト数や投稿数の制限は、Bufferの最新プラン条件に従います。
-
-投稿文はXの加重文字数上限（280）を安全側に計算します。長いゲーム名は書記素単位で末尾を `…` に省略し、絵文字の結合列を途中で分割せず、案内文・配布URL・ハッシュタグを必ず残します。
-
-### 接続テスト
-
-Actionsの `Daily free-to-keep scan` を手動実行し、`Send one visible Buffer-to-X connection test post`を有効にすると、日時入りのテスト投稿を1件だけ即時送信します。この入力は定期実行では使用されません。
 
 ## レポート
 
-レポートは上書きせず、Run IDとAttemptを含む名前で毎回新規作成します。
+各実行についてMarkdownとJSONを新規作成します。既存レポートは上書きしません。
 
 ```text
-reports/2026/10/
-├─ 2026-10-07_041723_JST_run-123456789_attempt-1.md
-└─ 2026-10-07_041723_JST_run-123456789_attempt-1.json
+reports/YYYY/MM/YYYY-MM-DD_HHMMSS_JST_run-RUN_ID_attempt-N.md
+reports/YYYY/MM/YYYY-MM-DD_HHMMSS_JST_run-RUN_ID_attempt-N.json
+
+reports/paid-transitions/YYYY/MM/YYYY-MM-DD_HHMMSS_JST_run-RUN_ID_attempt-N.md
+reports/paid-transitions/YYYY/MM/YYYY-MM-DD_HHMMSS_JST_run-RUN_ID_attempt-N.json
 ```
 
-有料化予定のレポートは `reports/paid-transitions/YYYY/MM/` に同じく追記保存します。
+レポートには実行日時、検出件数、投稿結果、検出商品、エラーを記録します。認証情報や外部サービスのレスポンス全文は保存しません。
 
-レポートには実行日時、検出件数、投稿結果、現在配布中の商品、エラーを記録します。秘密情報や外部サービスのレスポンス全文は記録しません。
+## 開発
 
-## ローカル実行
+Node.js 22以降が必要です。
 
 ```shell
 npm ci
 npm run check
-npm start
 ```
 
-既定ではX投稿は無効です。環境変数は `.env.example` を参照してください。Node.js 22以降が必要です。
+主なコマンド：
 
-## 注意事項
+```shell
+npm start                         # Free-to-Keepを検出
+npm run start:paid-transitions    # 有料化予定を検出
+npm test                          # 単体テスト
+npm run typecheck                 # 型チェック
+```
 
-Steam Store検索とappdetailsは公開ストアが使用するエンドポイントですが、安定した製品APIとして保証されたものではありません。取得処理はProviderとして分離してあり、レスポンス変更時に交換できる設計です。
+ローカル実行では、明示的に有効化しない限りXへ投稿しません。
+
+## 技術上の注意
+
+Steam Store検索と`appdetails`はSteamストアが利用する公開エンドポイントですが、安定した製品APIとして保証されたものではありません。レスポンスやHTML構造の変更により検出処理の更新が必要になる場合があります。
+
+このBotは無料取得や購入を自動実行しません。配布条件や終了日時は変更される可能性があるため、取得前に必ずストアページを確認してください。
