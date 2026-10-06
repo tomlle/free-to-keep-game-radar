@@ -1,6 +1,6 @@
 # free-to-keep-game-radar
 
-Steamで期間限定の100%割引になったゲームを検出し、新規キャンペーンだけをXへ投稿するGitHub Actions Botです。各実行について、人間向けMarkdownと分析向けJSONのレポートを追記保存します。
+Steamで期間限定の100%割引になったゲームを検出し、新規キャンペーンだけをBuffer経由でXへ投稿するGitHub Actions Botです。各実行について、人間向けMarkdownと分析向けJSONのレポートを追記保存します。
 
 ## 対象
 
@@ -30,18 +30,41 @@ GitHub Actionsが毎日04:17（Asia/Tokyo）に以下を実行します。
 
 ## GitHub設定
 
-Steamの検出にAPIキーやログイン情報は不要です。X投稿を有効にする場合のみ、Repository Settingsの `Secrets and variables` → `Actions` に以下を登録します。
+Steamの検出にAPIキーやログイン情報は不要です。X投稿には無料のBufferアカウントを使用します。BufferでXチャンネルを接続した後、Repository Settingsの `Secrets and variables` → `Actions` に以下を登録します。
 
 ### Secrets
 
-| 名前              | 内容                              |
-| ----------------- | --------------------------------- |
-| `X_APP_KEY`       | X Developer AppのAPI Key          |
-| `X_APP_SECRET`    | X Developer AppのAPI Key Secret   |
-| `X_ACCESS_TOKEN`  | 投稿ユーザーのAccess Token        |
-| `X_ACCESS_SECRET` | 投稿ユーザーのAccess Token Secret |
+| 名前                | 内容                                        |
+| ------------------- | ------------------------------------------- |
+| `BUFFER_API_KEY`    | Buffer Personal API Key（`postsWrite`権限） |
+| `BUFFER_CHANNEL_ID` | Bufferに接続したXチャンネルのChannel ID     |
 
-X Developer Appには投稿ユーザーとしての書き込み権限が必要です。認証情報はファイルやログへ保存しないでください。
+APIキーはBufferの `Settings` → `API` → `Personal Access` で作成します。有効期限は最長1年で、期限前に再生成してGitHub Secretを更新する必要があります。Channel IDはBuffer API Explorerで、まずOrganization IDを取得します。
+
+```graphql
+query GetOrganizations {
+  account {
+    organizations {
+      id
+      name
+    }
+  }
+}
+```
+
+次に取得したIDを指定してチャンネルを取得します。
+
+```graphql
+query GetChannels {
+  channels(input: { organizationId: "取得したOrganization ID" }) {
+    id
+    name
+    service
+  }
+}
+```
+
+レスポンス内で `service` が `twitter` のチャンネルIDを使用してください。認証情報はファイルやログへ保存しないでください。
 
 ### Variables
 
@@ -51,7 +74,7 @@ X Developer Appには投稿ユーザーとしての書き込み権限が必要�
 | `STEAM_COUNTRY`  | `JP`       | 判定対象の国                                             |
 | `STEAM_LANGUAGE` | `japanese` | Steamレスポンスの言語                                    |
 
-X APIは従量課金です。Developer Consoleでクレジットと利用上限を設定してください。
+投稿はBufferの `shareNow` を使用して即時送信します。X Developer AppやX APIクレジットは不要です。Buffer無料プランのAPIリクエスト数や投稿数の制限は、Bufferの最新プラン条件に従います。
 
 ## レポート
 

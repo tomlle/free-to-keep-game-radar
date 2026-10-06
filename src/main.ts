@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { loadConfig } from "./config.js";
 import { HttpError } from "./http.js";
-import { XPublisher } from "./publishers/x.js";
+import { BufferPublisher } from "./publishers/buffer.js";
 import { SteamProvider } from "./providers/steam.js";
 import { writeReport } from "./report.js";
 import { loadState, reconcilePromotions, saveState } from "./state.js";
@@ -97,7 +97,9 @@ async function run(): Promise<number> {
     report.detection.newPromotions = reconciliation.newCampaigns.length;
     report.detection.knownPromotions = reconciliation.knownPromotions;
 
-    const publisher = config.x ? new XPublisher(config.x) : undefined;
+    const publisher = config.buffer
+      ? new BufferPublisher(config.buffer)
+      : undefined;
     const activeProductIds = new Set(
       scan.promotions.map((promotion) => promotion.productId),
     );
@@ -127,12 +129,11 @@ async function run(): Promise<number> {
       try {
         const posted = await publisher.publish(campaign);
         campaign.postStatus = "sent";
-        campaign.xPostId = posted.id;
+        campaign.bufferPostId = posted.id;
         campaign.postedAt = new Date().toISOString();
         delete campaign.lastPostError;
         result.status = "sent";
-        result.xPostId = posted.id;
-        result.xPostUrl = posted.url;
+        result.bufferPostId = posted.id;
         report.posting.succeeded += 1;
       } catch (error) {
         const message = sanitizeError(error);
@@ -141,9 +142,9 @@ async function run(): Promise<number> {
         result.reason = message;
         report.posting.failed += 1;
         report.errors.push({
-          stage: "x_post",
+          stage: "buffer_post",
           severity: "error",
-          code: "X_POST_FAILED",
+          code: "BUFFER_POST_FAILED",
           message,
           productId: campaign.productId,
           retryCount: campaign.postAttempts,

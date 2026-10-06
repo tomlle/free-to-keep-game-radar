@@ -30,7 +30,7 @@ export interface CampaignState {
   consecutiveMisses: number;
   postStatus: "pending" | "sent" | "expired_without_post";
   postAttempts: number;
-  xPostId?: string;
+  bufferPostId?: string;
   postedAt?: string;
   lastPostError?: string;
 }
@@ -51,7 +51,7 @@ export interface ReportError {
     | "steam_search"
     | "steam_details"
     | "steam_enrichment"
-    | "x_post"
+    | "buffer_post"
     | "runtime";
   severity: "warning" | "error";
   code: string;
@@ -67,7 +67,7 @@ export interface PostResult {
   title: string;
   status: "sent" | "failed" | "skipped";
   reason?: string;
-  xPostId?: string;
+  bufferPostId?: string;
   xPostUrl?: string;
 }
 

@@ -77,6 +77,8 @@ export function renderMarkdown(report: RunReport): string {
     for (const post of report.posts) {
       lines.push(`- ${post.title} (${post.status})`);
       lines.push(`  - Campaign: ${post.campaignId}`);
+      if (post.bufferPostId)
+        lines.push(`  - Buffer Post ID: ${post.bufferPostId}`);
       if (post.xPostUrl) lines.push(`  - X: ${post.xPostUrl}`);
       if (post.reason) lines.push(`  - 理由: ${post.reason}`);
     }

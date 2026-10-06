@@ -42,10 +42,8 @@ jobs:
           POST_TO_X: ${{ vars.POST_TO_X }}
           STEAM_COUNTRY: ${{ vars.STEAM_COUNTRY }}
           STEAM_LANGUAGE: ${{ vars.STEAM_LANGUAGE }}
-          X_APP_KEY: ${{ secrets.X_APP_KEY }}
-          X_APP_SECRET: ${{ secrets.X_APP_SECRET }}
-          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
-          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_CHANNEL_ID: ${{ secrets.BUFFER_CHANNEL_ID }}
 
       - name: Commit state and append-only reports
         if: always()
