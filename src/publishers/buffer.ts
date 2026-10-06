@@ -1,6 +1,9 @@
 import type { CampaignState } from "../types.js";
 
 const BUFFER_API_URL = "https://api.buffer.com";
+const X_WEIGHTED_LENGTH_LIMIT = 280;
+const X_SHORTENED_URL_LENGTH = 23;
+const URL_PATTERN = /https?:\/\/[^\s]+/giu;
 
 export interface BufferCredentials {
   apiKey: string;
@@ -18,11 +21,26 @@ interface BufferResponse {
   errors?: Array<{ message?: string }>;
 }
 
-function truncate(value: string, maxCodePoints: number): string {
-  const points = [...value];
-  return points.length <= maxCodePoints
-    ? value
-    : `${points.slice(0, maxCodePoints - 1).join("")}…`;
+function plainTextWeight(value: string): number {
+  let weight = 0;
+  for (const character of value) {
+    const codePoint = character.codePointAt(0)!;
+    // X counts Latin and common punctuation as one. Counting every other code
+    // point as two is conservative for Japanese and joined emoji sequences.
+    weight += codePoint <= 0x10ff ? 1 : 2;
+  }
+  return weight;
+}
+
+export function xWeightedLength(value: string): number {
+  let weight = 0;
+  let cursor = 0;
+  for (const match of value.matchAll(URL_PATTERN)) {
+    weight += plainTextWeight(value.slice(cursor, match.index));
+    weight += X_SHORTENED_URL_LENGTH;
+    cursor = match.index + match[0].length;
+  }
+  return weight + plainTextWeight(value.slice(cursor));
 }
 
 function formatPrice(amount: number, currency: string): string {
@@ -48,22 +66,44 @@ function formatJst(value: string): string {
 }
 
 export function buildPostText(campaign: CampaignState): string {
-  const title = truncate(campaign.title, 80);
-  const lines = [
-    "🎁 ゲーム期間限定無料",
-    "",
-    `『${title}』`,
-    `${formatPrice(campaign.initialPrice, campaign.currency)} → 無料（100% OFF）`,
-  ];
-  if (campaign.endsAt) lines.push(`⏰ ${formatJst(campaign.endsAt)}まで`);
-  lines.push(
-    "期間内にライブラリへ追加すれば配布終了後も保持できます。",
-    "",
-    campaign.storeUrl,
-    "",
-    "#ゲーム無料配布 #Steam",
-  );
-  return lines.join("\n");
+  const render = (title: string): string => {
+    const lines = [
+      "🎁 無料配布きたで",
+      "",
+      `『${title}』`,
+      `${formatPrice(campaign.initialPrice, campaign.currency)} → 無料（100% OFF）`,
+    ];
+    if (campaign.endsAt) lines.push(`⏰ ${formatJst(campaign.endsAt)}まで`);
+    lines.push(
+      "Steam / Epic Gamesなどの期間限定無料配布をお知らせ。",
+      "もらえるもんは、もろとこ。",
+      "",
+      campaign.storeUrl,
+      "",
+      "#ゲーム無料配布 #Steam",
+    );
+    return lines.join("\n");
+  };
+
+  const complete = render(campaign.title);
+  if (xWeightedLength(complete) <= X_WEIGHTED_LENGTH_LIMIT) return complete;
+
+  const segmenter = new Intl.Segmenter("ja", { granularity: "grapheme" });
+  let shortened = "";
+  for (const { segment } of segmenter.segment(campaign.title)) {
+    if (
+      xWeightedLength(render(`${shortened}${segment}…`)) >
+      X_WEIGHTED_LENGTH_LIMIT
+    ) {
+      break;
+    }
+    shortened += segment;
+  }
+  const result = render(`${shortened}…`);
+  if (xWeightedLength(result) > X_WEIGHTED_LENGTH_LIMIT) {
+    throw new Error("X post template exceeds the weighted character limit");
+  }
+  return result;
 }
 
 export class BufferPublisher {

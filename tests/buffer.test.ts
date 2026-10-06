@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { BufferPublisher, buildPostText } from "../src/publishers/buffer.js";
+import {
+  BufferPublisher,
+  buildPostText,
+  xWeightedLength,
+} from "../src/publishers/buffer.js";
 import type { CampaignState } from "../src/types.js";
 
 const campaign: CampaignState = {
@@ -27,6 +31,21 @@ describe("Buffer publisher", () => {
     const text = buildPostText(campaign);
     assert.match(text, /Test Game/u);
     assert.match(text, /100% OFF/u);
+    assert.match(text, /無料配布きたで/u);
+    assert.match(text, /もらえるもんは、もろとこ。/u);
+    assert.match(text, /https:\/\/store\.steampowered\.com\/app\/100\//u);
+    assert.ok(xWeightedLength(text) <= 280);
+  });
+
+  it("truncates any long title without splitting grapheme clusters", () => {
+    const text = buildPostText({
+      ...campaign,
+      title: "👨‍👩‍👧‍👦超長編ゲーム".repeat(200),
+    });
+
+    assert.ok(xWeightedLength(text) <= 280);
+    assert.match(text, /…』/u);
+    assert.doesNotMatch(text, /\u200d…/u);
     assert.match(text, /https:\/\/store\.steampowered\.com\/app\/100\//u);
   });
 

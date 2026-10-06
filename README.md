@@ -76,6 +76,8 @@ query GetChannels {
 
 投稿はBufferの `shareNow` を使用して即時送信します。X Developer AppやX APIクレジットは不要です。Buffer無料プランのAPIリクエスト数や投稿数の制限は、Bufferの最新プラン条件に従います。
 
+投稿文はXの加重文字数上限（280）を安全側に計算します。長いゲーム名は書記素単位で末尾を `…` に省略し、絵文字の結合列を途中で分割せず、案内文・配布URL・ハッシュタグを必ず残します。
+
 ### 接続テスト
 
 Actionsの `Daily free-to-keep scan` を手動実行し、`Send one visible Buffer-to-X connection test post`を有効にすると、日時入りのテスト投稿を1件だけ即時送信します。この入力は定期実行では使用されません。
