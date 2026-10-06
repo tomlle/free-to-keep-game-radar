@@ -1,8 +1,51 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { classifyPaidTransition } from "../src/paid-transition.js";
+import {
+  classifyPaidTransition,
+  parseNewsSearchResults,
+  reconcilePaidTransitionEvent,
+} from "../src/paid-transition.js";
 
 describe("paid-transition detector", () => {
+  it("groups follow-up news into one product-level event", () => {
+    const products = {};
+    const base = {
+      productId: "2236920",
+      title: "Eco inc. Save the Earth",
+      storeUrl: "https://store.steampowered.com/app/2236920/",
+      announcementUrl: "https://example.test/news",
+      announcedAt: "2026-10-05T16:02:16.000Z",
+    };
+    const first = reconcilePaidTransitionEvent(
+      products,
+      { ...base, announcementId: "news-1" },
+      "2026-10-06T00:00:00.000Z",
+    );
+    first.status = "sent";
+    const followUp = reconcilePaidTransitionEvent(
+      products,
+      { ...base, announcementId: "news-2" },
+      "2026-10-07T00:00:00.000Z",
+    );
+
+    assert.equal(followUp.id, "steam:2236920:paid-transition:1");
+    assert.equal(followUp.status, "sent");
+    assert.deepEqual(followUp.announcementIds, ["news-1", "news-2"]);
+  });
+
+  it("extracts matching official-news search results", () => {
+    const html = `
+      <div id="post_123" class="newsPostBlock">
+        <div class="posttitle"><a href="https://example.test/news/123">This game will become a paid game</a></div>
+      </div>
+      <div class="newsPostBlock">
+        <div class="posttitle"><a href="https://example.test/news/999">Ordinary patch notes</a></div>
+      </div>`;
+    assert.deepEqual(parseNewsSearchResults(html), [
+      { announcementId: "123", url: "https://example.test/news/123" },
+    ]);
+  });
+
   it("accepts an official free-to-paid announcement with retained access", () => {
     const result = classifyPaidTransition(
       "2236920",
@@ -17,6 +60,31 @@ describe("paid-transition detector", () => {
       },
     );
     assert.equal(result?.notBeforeAt, "2026-10-12T16:02:16.000Z");
+  });
+
+  it("extracts an announced date and rejects uncertain plans", () => {
+    const app = { type: "game", name: "Example", is_free: true };
+    const dated = classifyPaidTransition("1", app, {
+      gid: "1",
+      title: "Example is becoming a paid game on October 13",
+      url: "https://example.test/news/1",
+      date: 1791216136,
+      contents:
+        "On October 13, 2026, the game will become paid. Existing players keep the game.",
+    });
+    assert.equal(dated?.notBeforeAt, "2026-10-13T00:00:00.000Z");
+
+    assert.equal(
+      classifyPaidTransition("1", app, {
+        gid: "2",
+        title: "Game Might Become Paid",
+        url: "https://example.test/news/2",
+        date: 1791216136,
+        contents:
+          "The game might become paid if approved. Existing players can keep the game.",
+      }),
+      undefined,
+    );
   });
 
   it("rejects paid DLC news and games that are no longer free", () => {

@@ -2,37 +2,35 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { loadConfig } from "./config.js";
 import {
+  reconcilePaidTransitionEvent,
+  scanPaidTransitions,
+  type PaidTransitionProductState,
+} from "./paid-transition.js";
+import {
   buildPaidTransitionPostText,
   BufferPublisher,
 } from "./publishers/buffer.js";
-import {
-  loadPaidTransitionWatchlist,
-  scanPaidTransitions,
-} from "./paid-transition.js";
 
-const WATCHLIST_PATH = resolve("data/paid-transition-watchlist.json");
 const STATE_PATH = resolve("data/paid-transition-state.json");
 const REPORT_ROOT = resolve("reports/paid-transitions");
 
-interface AnnouncementState {
-  status: "pending" | "sent";
-  firstSeenAt: string;
-  postedAt?: string;
-  bufferPostId?: string;
-  lastError?: string;
-}
-
 interface State {
-  schemaVersion: 1;
-  announcements: Record<string, AnnouncementState>;
+  schemaVersion: 2;
+  products: Record<string, PaidTransitionProductState>;
 }
 
 async function loadState(): Promise<State> {
   try {
-    return JSON.parse(await readFile(STATE_PATH, "utf8")) as State;
+    const state = JSON.parse(await readFile(STATE_PATH, "utf8")) as State;
+    if (state.schemaVersion !== 2) {
+      throw new Error(
+        `Unsupported paid-transition state schema: ${state.schemaVersion}`,
+      );
+    }
+    return state;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return { schemaVersion: 1, announcements: {} };
+      return { schemaVersion: 2, products: {} };
     }
     throw error;
   }
@@ -71,48 +69,55 @@ async function run(): Promise<number> {
   const startedAt = new Date();
   const config = loadConfig();
   const state = await loadState();
-  const appIds = await loadPaidTransitionWatchlist(WATCHLIST_PATH);
-  const scan = await scanPaidTransitions(appIds, config.steamCountry);
+  const activeProductIds = Object.entries(state.products)
+    .filter(([, product]) => product.event?.active)
+    .map(([key]) => key.slice("steam:".length));
+  const scan = await scanPaidTransitions(config.steamCountry, activeProductIds);
   const posts: Array<Record<string, string>> = [];
   const publisher = config.buffer
     ? new BufferPublisher(config.buffer)
     : undefined;
 
+  for (const productId of scan.currentlyPaidProductIds) {
+    const event = state.products[`steam:${productId}`]?.event;
+    if (event?.active) {
+      event.active = false;
+      event.convertedAt = new Date().toISOString();
+    }
+  }
+
   for (const transition of scan.transitions) {
-    const record = (state.announcements[transition.id] ??= {
-      status: "pending",
-      firstSeenAt: new Date().toISOString(),
-    });
-    if (record.status === "sent") continue;
+    const event = reconcilePaidTransitionEvent(
+      state.products,
+      transition,
+      new Date().toISOString(),
+    );
+    if (event.status === "sent") continue;
     if (!config.postToX || !publisher) {
-      posts.push({
-        id: transition.id,
-        title: transition.title,
-        status: "skipped",
-      });
+      posts.push({ id: event.id, title: transition.title, status: "skipped" });
       continue;
     }
     try {
       const posted = await publisher.publishText(
         buildPaidTransitionPostText(transition),
       );
-      record.status = "sent";
-      record.postedAt = new Date().toISOString();
-      record.bufferPostId = posted.id;
-      delete record.lastError;
+      event.status = "sent";
+      event.postedAt = new Date().toISOString();
+      event.bufferPostId = posted.id;
+      delete event.lastError;
       posts.push({
-        id: transition.id,
+        id: event.id,
         title: transition.title,
         status: "sent",
         bufferPostId: posted.id,
       });
     } catch (error) {
-      record.lastError = error instanceof Error ? error.message : String(error);
+      event.lastError = error instanceof Error ? error.message : String(error);
       posts.push({
-        id: transition.id,
+        id: event.id,
         title: transition.title,
         status: "failed",
-        error: record.lastError,
+        error: event.lastError,
       });
     }
   }
@@ -120,17 +125,17 @@ async function run(): Promise<number> {
   await saveState(state);
   const finishedAt = new Date();
   const report = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     run: {
       startedAt: startedAt.toISOString(),
       finishedAt: finishedAt.toISOString(),
     },
     detection: {
-      watched: scan.watched,
-      detected: scan.transitions.length,
-      new: scan.transitions.filter((item) =>
-        posts.some((post) => post.id === item.id),
-      ).length,
+      searchedQueries: scan.searchedQueries,
+      candidates: scan.candidates,
+      detectedAnnouncements: scan.transitions.length,
+      detectedProducts: new Set(scan.transitions.map((item) => item.productId))
+        .size,
     },
     posting: {
       succeeded: posts.filter((post) => post.status === "sent").length,
@@ -147,8 +152,9 @@ async function run(): Promise<number> {
     "# Upcoming Paid Games Report",
     "",
     `- 実行日時: ${startedAt.toISOString()}`,
-    `- 監視件数: ${report.detection.watched}`,
-    `- 検出件数: ${report.detection.detected}`,
+    `- ニュース検索数: ${report.detection.searchedQueries}`,
+    `- 候補ゲーム数: ${report.detection.candidates}`,
+    `- 検出ゲーム数: ${report.detection.detectedProducts}`,
     `- 投稿成功: ${report.posting.succeeded}`,
     `- 投稿失敗: ${report.posting.failed}`,
     `- 投稿スキップ: ${report.posting.skipped}`,
@@ -158,7 +164,7 @@ async function run(): Promise<number> {
     ...(scan.transitions.length
       ? scan.transitions.map(
           (item) =>
-            `- [${item.title}](${item.storeUrl}) — 有料化最短日: ${item.notBeforeAt ?? "未発表"}`,
+            `- [${item.title}](${item.storeUrl}) — News ID: ${item.announcementId}, 有料化最短日: ${item.notBeforeAt ?? "未発表"}`,
         )
       : ["検出されませんでした。"]),
     "",
@@ -180,7 +186,7 @@ async function run(): Promise<number> {
     writeFile(resolve(directory, `${stem}.md`), markdown, { flag: "wx" }),
   ]);
   console.log(
-    `Detected ${report.detection.detected} upcoming paid game(s); posted ${report.posting.succeeded}.`,
+    `Detected ${report.detection.detectedProducts} upcoming paid game(s); posted ${report.posting.succeeded}.`,
   );
   return report.posting.failed > 0 || scan.errors.length > 0 ? 1 : 0;
 }

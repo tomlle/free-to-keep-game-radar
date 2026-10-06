@@ -2,7 +2,7 @@ name: Daily free-to-keep scan
 
 on:
   schedule:
-    - cron: "17 4 * * *"
+    - cron: "0 12 * * *"
       timezone: "Asia/Tokyo"
   workflow_dispatch:
     inputs:
@@ -65,7 +65,6 @@ jobs:
         env:
           POST_TO_X: ${{ vars.POST_TO_X }}
           STEAM_COUNTRY: ${{ vars.STEAM_COUNTRY }}
-          STEAM_PAID_TRANSITION_APP_IDS: ${{ vars.STEAM_PAID_TRANSITION_APP_IDS }}
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
           BUFFER_CHANNEL_ID: ${{ secrets.BUFFER_CHANNEL_ID }}
 
