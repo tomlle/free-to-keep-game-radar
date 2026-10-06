@@ -2,8 +2,10 @@
   "schemaVersion": 1,
   "announcements": {
     "steam:2236920:news:1845383656393924": {
-      "status": "pending",
-      "firstSeenAt": "2026-10-06T14:09:38.193Z"
+      "status": "sent",
+      "firstSeenAt": "2026-10-06T14:09:38.193Z",
+      "postedAt": "2026-10-06T14:19:30.227Z",
+      "bufferPostId": "6ac503714f0da3b3682660b5"
     }
   }
 }
