@@ -7,7 +7,9 @@
         "id": "steam:2236920:paid-transition:1",
         "status": "sent",
         "active": true,
-        "announcementIds": ["1845383656393924"],
+        "announcementIds": [
+          "1845383656393924"
+        ],
         "firstSeenAt": "2026-10-06T14:09:38.193Z",
         "postedAt": "2026-10-06T14:19:30.227Z",
         "bufferPostId": "6ac503714f0da3b3682660b5"
@@ -17,20 +19,28 @@
       "generation": 1,
       "event": {
         "id": "steam:3594170:paid-transition:1",
-        "status": "pending",
+        "status": "sent",
         "active": true,
-        "announcementIds": ["1845383656377048"],
-        "firstSeenAt": "2026-10-06T14:46:49.195Z"
+        "announcementIds": [
+          "1845383656377048"
+        ],
+        "firstSeenAt": "2026-10-06T14:46:49.195Z",
+        "postedAt": "2026-10-06T14:52:00.791Z",
+        "bufferPostId": "6ac50b0f0c0a17c2690bb283"
       }
     },
     "steam:4319430": {
       "generation": 1,
       "event": {
         "id": "steam:4319430:paid-transition:1",
-        "status": "pending",
+        "status": "sent",
         "active": true,
-        "announcementIds": ["1844751498235227"],
-        "firstSeenAt": "2026-10-06T14:46:49.195Z"
+        "announcementIds": [
+          "1844751498235227"
+        ],
+        "firstSeenAt": "2026-10-06T14:46:49.195Z",
+        "postedAt": "2026-10-06T14:52:02.150Z",
+        "bufferPostId": "6ac50b10ee4d28743ca26d8f"
       }
     }
   }
