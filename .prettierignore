@@ -3,3 +3,5 @@ dist
 coverage
 package-lock.json
 reports
+data/state.json
+data/paid-transition-state.json
