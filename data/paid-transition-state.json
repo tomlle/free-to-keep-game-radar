@@ -42,6 +42,20 @@
         "postedAt": "2026-10-06T14:52:02.150Z",
         "bufferPostId": "6ac50b10ee4d28743ca26d8f"
       }
+    },
+    "steam:5257350": {
+      "generation": 1,
+      "event": {
+        "id": "steam:5257350:paid-transition:1",
+        "status": "sent",
+        "active": true,
+        "announcementIds": [
+          "1846018067925478"
+        ],
+        "firstSeenAt": "2026-10-07T15:17:47.818Z",
+        "postedAt": "2026-10-07T15:17:49.242Z",
+        "bufferPostId": "6ac6629c75e2178a99496e97"
+      }
     }
   }
 }
