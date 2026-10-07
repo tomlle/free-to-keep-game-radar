@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 2,
+  "run": {
+    "startedAt": "2026-10-07T05:08:40.134Z",
+    "finishedAt": "2026-10-07T05:09:04.234Z"
+  },
+  "detection": {
+    "searchedQueries": 7,
+    "candidates": 25,
+    "detectedAnnouncements": 3,
+    "detectedProducts": 3
+  },
+  "posting": {
+    "succeeded": 0,
+    "failed": 0,
+    "skipped": 0
+  },
+  "transitions": [
+    {
+      "productId": "3594170",
+      "title": "Endor Awakens: Roguelite DRPG",
+      "storeUrl": "https://store.steampowered.com/app/3594170/",
+      "announcementId": "1845383656377048",
+      "announcementUrl": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1845383656377048",
+      "announcedAt": "2026-09-30T10:20:51.000Z",
+      "notBeforeAt": "2026-10-08T00:00:00.000Z"
+    },
+    {
+      "productId": "2236920",
+      "title": "Eco inc. Save the Earth",
+      "storeUrl": "https://store.steampowered.com/app/2236920/",
+      "announcementId": "1845383656393924",
+      "announcementUrl": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1845383656393924",
+      "announcedAt": "2026-10-05T16:02:16.000Z",
+      "notBeforeAt": "2026-10-12T16:02:16.000Z"
+    },
+    {
+      "productId": "4319430",
+      "title": "JAYWALK: An Endless Arcade Hopper Game",
+      "storeUrl": "https://store.steampowered.com/app/4319430/",
+      "announcementId": "1844751498235227",
+      "announcementUrl": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1844751498235227",
+      "announcedAt": "2026-09-29T19:07:11.000Z",
+      "notBeforeAt": "2026-10-13T00:00:00.000Z"
+    }
+  ],
+  "posts": [],
+  "errors": []
+}
