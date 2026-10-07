@@ -62,6 +62,23 @@ describe("paid-transition detector", () => {
     assert.equal(result?.notBeforeAt, "2026-10-12T16:02:16.000Z");
   });
 
+  it("accepts retained play after the game becomes paid", () => {
+    const result = classifyPaidTransition(
+      "5257350",
+      { type: "game", name: "Hex Reverse", is_free: true },
+      {
+        gid: "1846018067925478",
+        title: "Hex Reverse Is Out Now — Free to Keep for the First 30 Days",
+        url: "https://example.test/news",
+        date: 1791364372,
+        contents:
+          "The game is free to claim for the first 30 days after release. If you claim it during that period, you can keep playing after it becomes paid without purchasing it again.",
+      },
+    );
+
+    assert.equal(result?.productId, "5257350");
+  });
+
   it("extracts an announced date and rejects uncertain plans", () => {
     const app = { type: "game", name: "Example", is_free: true };
     const dated = classifyPaidTransition("1", app, {

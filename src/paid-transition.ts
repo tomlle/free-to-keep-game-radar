@@ -63,7 +63,7 @@ const SEARCH_TERMS = [
 const PAID_PATTERN =
   /(?:become|becomes|becoming|going|transition(?:ing)?)\s+(?:a\s+)?(?:to\s+)?(?:paid|premium)|free\s+to\s+(?:a\s+)?paid/iu;
 const KEEP_PATTERN =
-  /(?:keep|retain|continue to have)\s+(?:permanent\s+)?access|keep\s+(?:the game|it)|free license[^.]{0,100}(?:keep|remain)/iu;
+  /(?:keep|retain|continue to have)\s+(?:permanent\s+)?access|keep\s+(?:the game|it)|keep\s+playing[^.]{0,100}(?:after|when)\s+(?:it|the game)\s+becomes?\s+paid|free license[^.]{0,100}(?:keep|remain)/iu;
 const UNCERTAIN_PATTERN =
   /\b(?:might|may|could)\s+(?:become|becoming|transition|change)\b/iu;
 const MONTHS = [
