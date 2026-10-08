@@ -8,7 +8,7 @@
 - 有料ゲームを期間中だけ遊べる一時プレイ無料
 - 現在は無料だが、今後有料化されるゲーム
 
-検出、投稿、状態更新、実行レポートの保存までGitHub Actionsだけで動作します。
+cron-job.orgからGitHub Actionsを定期起動し、検出、投稿、状態更新、実行レポートの保存を行います。
 
 ## 投稿例
 
@@ -97,7 +97,7 @@ Steam公式ニュースを有料化に関する複数の表現で検索し、見
 
 ## 処理の流れ
 
-毎日、00:15・08:15・17:15・18:15（UTC）に、次の順番で実行します。日本時間では09:15・17:15・翌02:15・翌03:15です。17:15・18:15（UTC）の2回は、Steamの標準更新時刻である10:00（America/Los_Angeles）の夏時間と冬時間をそれぞれカバーします。GitHub Actionsのタイムゾーン対応スケジュールに依存しないよう、cronはすべてUTCで定義しています。
+cron-job.orgから毎日00:15・08:15・17:15・18:15（UTC）にGitHub Actionsを起動し、次の順番で実行します。日本時間では09:15・17:15・翌02:15・翌03:15です。17:15・18:15（UTC）の2回は、Steamの標準更新時刻である10:00（America/Los_Angeles）の夏時間と冬時間をそれぞれカバーします。
 
 1. Steam Storeから100%割引候補と一時プレイ無料候補を取得
 2. 商品詳細を使ってそれぞれの条件を再検証
@@ -106,9 +106,49 @@ Steam公式ニュースを有料化に関する複数の表現で検索し、見
 5. 未投稿の有料化告知をXへ投稿
 6. 状態と実行レポートをリポジトリへ保存
 
-定期実行トリガー自体の健全性を確認するため、独立した診断ワークフローを00:37・06:37・12:37・18:37（UTC）に実行します。このワークフローは現在時刻とトリガー情報をログへ出力するだけで、ストアの走査、Xへの投稿、リポジトリの更新は行いません。
+GitHub Actions側にはスケジュールを定義せず、手動実行とcron-job.orgからの`workflow_dispatch`だけを受け付けます。
 
 投稿状態をリポジトリ内に保持するため、同じキャンペーンは重複投稿しません。有料化予定はApp ID単位のイベントとして管理し、複数の続報が公開されても再投稿せず、関連ニュースとして同じイベントへ記録します。実際に有料化された後、再び無料化されて新しい有料化告知が出た場合だけ、次の世代のイベントとして扱います。
+
+## cron-job.orgの設定
+
+GitHubでFine-grained personal access tokenを作成し、Repository accessをこのリポジトリだけに限定して、Repository permissionsの`Actions`へ`Read and write`を付与します。トークンはリポジトリへ保存せず、cron-job.orgのリクエストヘッダーだけに設定します。
+
+[cron-job.org Console](https://console.cron-job.org/)で次のジョブを作成します。
+
+- Title: `free-to-keep-game-radar`
+- URL: `https://api.github.com/repos/tomlle/free-to-keep-game-radar/actions/workflows/daily.yml/dispatches`
+- Request method: `POST`
+- Schedule timezone: `UTC`
+- Schedule: 毎日、時刻は`00:15`・`08:15`・`17:15`・`18:15`
+- Request timeout: `30`秒
+- Save responses: 有効
+- Failure notification: 1回目の失敗から通知
+- Success notification: 障害復旧時に通知
+
+リクエストヘッダーは次のとおりです。`YOUR_FINE_GRAINED_PAT`は作成したトークンへ置き換えます。
+
+```text
+Accept: application/vnd.github+json
+Authorization: Bearer YOUR_FINE_GRAINED_PAT
+Content-Type: application/json
+X-GitHub-Api-Version: 2026-03-10
+```
+
+リクエスト本文には次のJSONを設定します。
+
+```json
+{
+  "ref": "main",
+  "inputs": {
+    "verify_buffer": false,
+    "trigger_source": "cron-job.org"
+  },
+  "return_run_details": true
+}
+```
+
+保存後にcron-job.orgのテスト実行を行い、GitHub Actionsに`workflow_dispatch`の実行が作成され、`Record trigger source`へ`cron-job.org`と記録されることを確認します。cron-job.orgのアカウントには多要素認証を設定し、PATの有効期限前に更新します。
 
 ## ディレクトリ構成
 

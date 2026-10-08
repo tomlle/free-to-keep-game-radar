@@ -1,9 +1,6 @@
 name: 期間限定無料配布レーダー
 
 on:
-  schedule:
-    # UTC only: 09:15/17:15 JST and 10:15 Pacific in both PDT/PST.
-    - cron: "15 0,8,17,18 * * *"
   workflow_dispatch:
     inputs:
       verify_buffer:
@@ -11,6 +8,11 @@ on:
         required: false
         type: boolean
         default: false
+      trigger_source:
+        description: "Source that requested this run"
+        required: false
+        type: string
+        default: "manual"
 
 permissions:
   contents: write
@@ -25,6 +27,11 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      - name: Record trigger source
+        env:
+          TRIGGER_SOURCE: ${{ inputs.trigger_source }}
+        run: echo "trigger_source=$TRIGGER_SOURCE"
+
       - name: Checkout
         uses: actions/checkout@v6
 
