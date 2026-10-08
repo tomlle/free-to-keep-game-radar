@@ -30,19 +30,28 @@ export function reportPaths(
 }
 
 function promotionLine(promotion: Promotion): string {
-  const end = promotion.endsAt
-    ? new Intl.DateTimeFormat("ja-JP", {
-        timeZone: "Asia/Tokyo",
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(new Date(promotion.endsAt))
-    : "不明";
-  return `- [${promotion.title}](${promotion.storeUrl}) — AppID: ${promotion.productId}, 終了: ${end}`;
+  const format = (value: string): string =>
+    new Intl.DateTimeFormat("ja-JP", {
+      timeZone: "Asia/Tokyo",
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  const period =
+    promotion.startsAt && promotion.endsAt
+      ? `${format(promotion.startsAt)}〜${format(promotion.endsAt)}`
+      : promotion.endsAt
+        ? `${format(promotion.endsAt)}まで`
+        : promotion.startsAt
+          ? `${format(promotion.startsAt)}から`
+          : "不明";
+  const kind =
+    promotion.kind === "temporary_play" ? "一時プレイ無料" : "無料配布";
+  return `- [${promotion.title}](${promotion.storeUrl}) — 種別: ${kind}, AppID: ${promotion.productId}, 期間: ${period}`;
 }
 
 export function renderMarkdown(report: RunReport): string {
   const lines = [
-    "# 期間限定無料配布レーダー 実行レポート",
+    "# Steam無料キャンペーンレーダー 実行レポート",
     "",
     "## 実行情報",
     "",
@@ -61,8 +70,8 @@ export function renderMarkdown(report: RunReport): string {
     `- Steam検索件数: ${report.detection.searched}`,
     `- 100%割引候補: ${report.detection.candidates}`,
     `- 検証済み配布: ${report.detection.verified}`,
-    `- 新規配布: ${report.detection.newPromotions}`,
-    `- 既知の配布: ${report.detection.knownPromotions}`,
+    `- 新規キャンペーン: ${report.detection.newPromotions}`,
+    `- 既知のキャンペーン: ${report.detection.knownPromotions}`,
     `- 除外件数: ${report.detection.excluded}`,
     "",
     "## 投稿結果",

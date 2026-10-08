@@ -51,7 +51,12 @@ export function reconcilePromotions(
   let knownPromotions = 0;
 
   for (const promotion of promotions) {
-    const productKey = `${promotion.store}:${promotion.productId}`;
+    // Keep the original key for free-to-keep campaigns so existing state files
+    // do not cause already-announced promotions to be posted again.
+    const productKey =
+      promotion.kind === "temporary_play"
+        ? `${promotion.store}:${promotion.productId}:temporary_play`
+        : `${promotion.store}:${promotion.productId}`;
     seen.add(productKey);
     const product = state.products[productKey] ?? { generation: 0 };
     const active = product.activeCampaignId
@@ -59,12 +64,15 @@ export function reconcilePromotions(
       : undefined;
 
     if (active?.active) {
+      active.kind = promotion.kind;
       active.title = promotion.title;
       active.storeUrl = promotion.storeUrl;
       active.initialPrice = promotion.initialPrice;
       active.currency = promotion.currency;
+      active.discountPercent = promotion.discountPercent;
       active.lastSeenAt = now;
       active.consecutiveMisses = 0;
+      if (promotion.startsAt) active.startsAt = promotion.startsAt;
       if (promotion.endsAt) active.endsAt = promotion.endsAt;
       knownPromotions += 1;
       continue;
@@ -73,6 +81,7 @@ export function reconcilePromotions(
     const generation = product.generation + 1;
     const id = `${productKey}:${generation}`;
     const campaign: CampaignState = {
+      kind: promotion.kind,
       id,
       store: promotion.store,
       productId: promotion.productId,
@@ -81,7 +90,7 @@ export function reconcilePromotions(
       storeUrl: promotion.storeUrl,
       initialPrice: promotion.initialPrice,
       currency: promotion.currency,
-      discountPercent: 100,
+      discountPercent: promotion.discountPercent,
       firstSeenAt: now,
       lastSeenAt: now,
       active: true,
@@ -89,6 +98,7 @@ export function reconcilePromotions(
       postStatus: "pending",
       postAttempts: 0,
     };
+    if (promotion.startsAt) campaign.startsAt = promotion.startsAt;
     if (promotion.endsAt) campaign.endsAt = promotion.endsAt;
 
     state.campaigns[id] = campaign;

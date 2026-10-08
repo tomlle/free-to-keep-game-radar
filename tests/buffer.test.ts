@@ -9,6 +9,7 @@ import {
 import type { CampaignState } from "../src/types.js";
 
 const campaign: CampaignState = {
+  kind: "free_to_keep",
   id: "steam:100:1",
   store: "steam",
   productId: "100",
@@ -55,10 +56,30 @@ describe("Buffer publisher", () => {
     assert.match(text, /Test Game/u);
     assert.match(text, /100% OFF/u);
     assert.match(text, /無料配布🎁/u);
+    assert.match(text, /⏰ 10\/8 09:00まで/u);
+    assert.doesNotMatch(text, /JST/u);
     assert.doesNotMatch(text, /もらえるもんは/u);
     assert.match(text, /#ゲーム無料配布 #Steam #もろとこ/u);
     assert.doesNotMatch(text, /Epic Gamesなど/u);
     assert.match(text, /https:\/\/store\.steampowered\.com\/app\/100\//u);
+    assert.ok(xWeightedLength(text) <= 280);
+  });
+
+  it("uses a separate template for temporary free play", () => {
+    const text = buildPostText({
+      ...campaign,
+      kind: "temporary_play",
+      discountPercent: 50,
+      startsAt: "2026-10-05T00:00:00.000Z",
+    });
+
+    assert.match(text, /一時プレイ無料🎮/u);
+    assert.match(text, /気になってたゲームを、この機会に遊んでみよう！/u);
+    assert.doesNotMatch(text, /終了後も遊ぶには購入が必要/u);
+    assert.match(text, /⏰ 10\/5 09:00〜10\/8 09:00/u);
+    assert.doesNotMatch(text, /JST/u);
+    assert.match(text, /#ゲーム無料プレイ #Steam #もろとこ/u);
+    assert.doesNotMatch(text, /無料配布🎁|100% OFF/u);
     assert.ok(xWeightedLength(text) <= 280);
   });
 

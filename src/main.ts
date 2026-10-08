@@ -100,14 +100,18 @@ async function run(): Promise<number> {
     const publisher = config.buffer
       ? new BufferPublisher(config.buffer)
       : undefined;
-    const activeProductIds = new Set(
-      scan.promotions.map((promotion) => promotion.productId),
+    const activePromotionKeys = new Set(
+      scan.promotions.map(
+        (promotion) => `${promotion.kind}:${promotion.productId}`,
+      ),
     );
     const pending = Object.values(state.campaigns).filter(
       (campaign) =>
         campaign.active &&
         campaign.postStatus === "pending" &&
-        activeProductIds.has(campaign.productId),
+        activePromotionKeys.has(
+          `${campaign.kind ?? "free_to_keep"}:${campaign.productId}`,
+        ),
     );
 
     for (const campaign of pending) {

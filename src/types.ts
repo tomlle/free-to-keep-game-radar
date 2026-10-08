@@ -1,6 +1,8 @@
 export type StoreId = "steam";
+export type PromotionKind = "free_to_keep" | "temporary_play";
 
 export interface Promotion {
+  kind: PromotionKind;
   store: StoreId;
   productId: string;
   packageId?: string;
@@ -9,11 +11,13 @@ export interface Promotion {
   imageUrl?: string;
   initialPrice: number;
   currency: string;
-  discountPercent: 100;
+  discountPercent: number;
+  startsAt?: string;
   endsAt?: string;
 }
 
 export interface CampaignState {
+  kind: PromotionKind;
   id: string;
   store: StoreId;
   productId: string;
@@ -22,7 +26,8 @@ export interface CampaignState {
   storeUrl: string;
   initialPrice: number;
   currency: string;
-  discountPercent: 100;
+  discountPercent: number;
+  startsAt?: string;
   endsAt?: string;
   firstSeenAt: string;
   lastSeenAt: string;

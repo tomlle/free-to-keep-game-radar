@@ -4,6 +4,7 @@ import { reconcilePromotions } from "../src/state.js";
 import type { Promotion, RadarState } from "../src/types.js";
 
 const promotion: Promotion = {
+  kind: "free_to_keep",
   store: "steam",
   productId: "100",
   title: "Test Game",
@@ -58,5 +59,26 @@ describe("campaign reconciliation", () => {
 
     assert.equal(current.campaigns["steam:100:1"]?.consecutiveMisses, 0);
     assert.equal(current.campaigns["steam:100:1"]?.active, true);
+  });
+
+  it("tracks temporary play separately from a free-to-keep campaign", () => {
+    const current = state();
+    const temporaryPlay: Promotion = {
+      ...promotion,
+      kind: "temporary_play",
+      discountPercent: 25,
+    };
+
+    const result = reconcilePromotions(
+      current,
+      [promotion, temporaryPlay],
+      "2026-10-06T00:00:00Z",
+    );
+
+    assert.equal(result.newCampaigns.length, 2);
+    assert.equal(
+      current.campaigns["steam:100:temporary_play:1"]?.kind,
+      "temporary_play",
+    );
   });
 });

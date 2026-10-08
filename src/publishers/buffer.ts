@@ -4,6 +4,7 @@ const BUFFER_API_URL = "https://api.buffer.com";
 const X_WEIGHTED_LENGTH_LIMIT = 280;
 const X_SHORTENED_URL_LENGTH = 23;
 const URL_PATTERN = /https?:\/\/[^\s]+/giu;
+const POST_TIME_ZONE = "Asia/Tokyo";
 
 export interface BufferCredentials {
   apiKey: string;
@@ -63,7 +64,7 @@ function formatPrice(amount: number, currency: string): string {
 
 function formatJst(value: string): string {
   return new Intl.DateTimeFormat("ja-JP", {
-    timeZone: "Asia/Tokyo",
+    timeZone: POST_TIME_ZONE,
     month: "numeric",
     day: "numeric",
     hour: "2-digit",
@@ -73,13 +74,41 @@ function formatJst(value: string): string {
 
 export function buildPostText(campaign: CampaignState): string {
   const render = (title: string): string => {
+    if (campaign.kind === "temporary_play") {
+      const lines = [
+        "一時プレイ無料🎮",
+        "",
+        `『${title}』`,
+        "期間限定で無料プレイ",
+        "気になってたゲームを、この機会に遊んでみよう！",
+      ];
+      if (campaign.startsAt && campaign.endsAt) {
+        lines.push(
+          `⏰ ${formatJst(campaign.startsAt)}〜${formatJst(campaign.endsAt)}`,
+        );
+      } else if (campaign.endsAt) {
+        lines.push(`⏰ ${formatJst(campaign.endsAt)}まで`);
+      } else if (campaign.startsAt) {
+        lines.push(`⏰ ${formatJst(campaign.startsAt)}から`);
+      }
+      lines.push(
+        "",
+        campaign.storeUrl,
+        "",
+        "#ゲーム無料プレイ #Steam #もろとこ",
+      );
+      return lines.join("\n");
+    }
+
     const lines = [
       "無料配布🎁",
       "",
       `『${title}』`,
       `${formatPrice(campaign.initialPrice, campaign.currency)} → 無料（100% OFF）`,
     ];
-    if (campaign.endsAt) lines.push(`⏰ ${formatJst(campaign.endsAt)}まで`);
+    if (campaign.endsAt) {
+      lines.push(`⏰ ${formatJst(campaign.endsAt)}まで`);
+    }
     lines.push("", campaign.storeUrl, "", "#ゲーム無料配布 #Steam #もろとこ");
     return lines.join("\n");
   };
@@ -112,7 +141,7 @@ export function buildPaidTransitionPostText(
   if (transition.notBeforeAt) {
     const parts = Object.fromEntries(
       new Intl.DateTimeFormat("ja-JP", {
-        timeZone: "Asia/Tokyo",
+        timeZone: POST_TIME_ZONE,
         month: "numeric",
         day: "numeric",
       })

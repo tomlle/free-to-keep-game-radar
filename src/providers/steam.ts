@@ -1,8 +1,9 @@
 import { load } from "cheerio";
 import { fetchWithRetry, HttpError } from "../http.js";
-import type { Promotion, ReportError } from "../types.js";
+import type { Promotion, PromotionKind, ReportError } from "../types.js";
 
 export interface SteamSearchCandidate {
+  kind: PromotionKind;
   appId: string;
   title: string;
   storeUrl: string;
@@ -36,6 +37,20 @@ interface SteamAppDetailsEnvelope {
   data?: SteamAppDetails;
 }
 
+interface SteamStoreBrowseItem {
+  is_free_temporarily?: boolean;
+  free_weekend?: {
+    start_time?: number;
+    end_time?: number;
+  };
+}
+
+interface SteamStoreBrowseResponse {
+  response?: {
+    store_items?: SteamStoreBrowseItem[];
+  };
+}
+
 export interface SteamScanResult {
   searched: number;
   candidates: number;
@@ -55,7 +70,10 @@ function normalizeStoreUrl(href: string, appId: string): string {
   }
 }
 
-export function parseSteamSearchHtml(html: string): SteamSearchCandidate[] {
+export function parseSteamSearchHtml(
+  html: string,
+  kind: PromotionKind = "free_to_keep",
+): SteamSearchCandidate[] {
   const $ = load(html);
   const candidates: SteamSearchCandidate[] = [];
 
@@ -68,9 +86,13 @@ export function parseSteamSearchHtml(html: string): SteamSearchCandidate[] {
     if (!appId || !/^\d+$/u.test(appId)) return;
 
     const discountText = row.find(".discount_pct").first().text().trim();
-    const discountPercent = Math.abs(
-      Number.parseInt(discountText.replace(/[^\d]/gu, ""), 10),
+    const parsedDiscount = Number.parseInt(
+      discountText.replace(/[^\d]/gu, ""),
+      10,
     );
+    const discountPercent = Number.isNaN(parsedDiscount)
+      ? 0
+      : Math.abs(parsedDiscount);
     const initialPriceText = row
       .find(".discount_original_price")
       .first()
@@ -83,14 +105,16 @@ export function parseSteamSearchHtml(html: string): SteamSearchCandidate[] {
       .trim();
 
     if (
-      discountPercent !== 100 ||
-      !initialPriceText ||
-      !FREE_TEXT.test(finalPriceText)
+      kind === "free_to_keep" &&
+      (discountPercent !== 100 ||
+        !initialPriceText ||
+        !FREE_TEXT.test(finalPriceText))
     ) {
       return;
     }
 
     candidates.push({
+      kind,
       appId,
       title: row.find(".title").first().text().trim() || `Steam App ${appId}`,
       storeUrl: normalizeStoreUrl(href, appId),
@@ -108,6 +132,7 @@ export function validateSteamAppDetails(
   details: SteamAppDetails,
   fallbackTitle: string,
   storeUrl: string,
+  kind: PromotionKind = "free_to_keep",
 ): Promotion | undefined {
   const price = details.price_overview;
   if (
@@ -115,21 +140,29 @@ export function validateSteamAppDetails(
     details.is_free === true ||
     !price ||
     price.initial === undefined ||
-    price.final !== 0 ||
-    price.initial <= 0 ||
-    price.discount_percent !== 100
+    price.final === undefined ||
+    price.initial <= 0
   ) {
     return undefined;
   }
 
+  if (
+    kind === "free_to_keep" &&
+    (price.final !== 0 || price.discount_percent !== 100)
+  ) {
+    return undefined;
+  }
+  if (kind === "temporary_play" && price.final <= 0) return undefined;
+
   const promotion: Promotion = {
+    kind,
     store: "steam",
     productId: appId,
     title: details.name?.trim() || fallbackTitle,
     storeUrl,
     initialPrice: price.initial,
     currency: price.currency ?? "JPY",
-    discountPercent: 100,
+    discountPercent: price.discount_percent ?? 0,
   };
   if (details.header_image) promotion.imageUrl = details.header_image;
   return promotion;
@@ -147,6 +180,27 @@ export function extractPromotionEnd(html: string): string | undefined {
     if (!Number.isNaN(date.getTime())) return date.toISOString();
   }
   return undefined;
+}
+
+export function validateTemporaryPlayStoreItem(
+  item: SteamStoreBrowseItem | undefined,
+): { startsAt?: string; endsAt?: string } | undefined {
+  if (!item || (item.is_free_temporarily !== true && !item.free_weekend)) {
+    return undefined;
+  }
+
+  const period: { startsAt?: string; endsAt?: string } = {};
+  const startTime = item.free_weekend?.start_time;
+  const endTime = item.free_weekend?.end_time;
+  if (startTime) {
+    const start = new Date(startTime * 1_000);
+    if (!Number.isNaN(start.getTime())) period.startsAt = start.toISOString();
+  }
+  if (endTime) {
+    const end = new Date(endTime * 1_000);
+    if (!Number.isNaN(end.getTime())) period.endsAt = end.toISOString();
+  }
+  return period;
 }
 
 export class SteamProvider {
@@ -182,17 +236,25 @@ export class SteamProvider {
       const response = await fetchWithRetry(url.toString());
       const payload = (await response.json()) as SteamSearchResponse;
       const html = payload.results_html ?? "";
-      const pageRows = parseSteamSearchHtml(html);
+      const freeToKeepRows = parseSteamSearchHtml(html, "free_to_keep");
+      const freeToKeepAppIds = new Set(freeToKeepRows.map((row) => row.appId));
+      const temporaryPlayRows = parseSteamSearchHtml(
+        html,
+        "temporary_play",
+      ).filter((row) => !freeToKeepAppIds.has(row.appId));
+      const pageRows = [...freeToKeepRows, ...temporaryPlayRows];
       if (
         Number(payload.total_count ?? 0) > 0 &&
         html.includes("search_result_row") &&
         pageRows.length === 0
       ) {
         throw new Error(
-          "Steam search returned matching rows, but none could be parsed as a 100% discount. The storefront markup may have changed.",
+          "Steam promotion search returned rows, but none could be parsed. The storefront markup may have changed.",
         );
       }
-      for (const row of pageRows) allRows.set(row.appId, row);
+      for (const row of pageRows) {
+        allRows.set(`${row.kind}:${row.appId}`, row);
+      }
 
       total = Number(payload.total_count ?? start + pageSize);
       if (!html.trim()) break;
@@ -225,12 +287,45 @@ export class SteamProvider {
                 envelope.data,
                 candidate.title,
                 candidate.storeUrl,
+                candidate.kind,
               )
             : undefined;
 
         if (!promotion) {
           excluded += 1;
           continue;
+        }
+
+        if (candidate.kind === "temporary_play") {
+          const browseUrl = new URL(
+            "https://api.steampowered.com/IStoreBrowseService/GetItems/v1/",
+          );
+          browseUrl.searchParams.set(
+            "input_json",
+            JSON.stringify({
+              ids: [{ appid: Number.parseInt(candidate.appId, 10) }],
+              context: {
+                language: this.language,
+                country_code: this.country.toUpperCase(),
+                steam_realm: 1,
+              },
+              data_request: { include_basic_info: true },
+            }),
+          );
+          const browseResponse = await fetchWithRetry(browseUrl.toString());
+          const browsePayload =
+            (await browseResponse.json()) as SteamStoreBrowseResponse;
+          const temporaryPlay = validateTemporaryPlayStoreItem(
+            browsePayload.response?.store_items?.[0],
+          );
+          if (!temporaryPlay) {
+            excluded += 1;
+            continue;
+          }
+          if (temporaryPlay.startsAt) {
+            promotion.startsAt = temporaryPlay.startsAt;
+          }
+          if (temporaryPlay.endsAt) promotion.endsAt = temporaryPlay.endsAt;
         }
 
         try {
@@ -243,8 +338,10 @@ export class SteamProvider {
                 "birthtime=0; lastagecheckage=1-January-1970; wants_mature_content=1",
             },
           });
-          const endsAt = extractPromotionEnd(await pageResponse.text());
-          if (endsAt) promotion.endsAt = endsAt;
+          if (candidate.kind === "free_to_keep") {
+            const endsAt = extractPromotionEnd(await pageResponse.text());
+            if (endsAt) promotion.endsAt = endsAt;
+          }
         } catch (error) {
           errors.push(
             toReportError(error, "steam_enrichment", candidate.appId),
