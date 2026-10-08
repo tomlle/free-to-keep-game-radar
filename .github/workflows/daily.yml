@@ -2,10 +2,8 @@ name: Daily free-to-keep scan
 
 on:
   schedule:
-    - cron: "15 10 * * *"
-      timezone: "America/Los_Angeles"
-    - cron: "15 9,17 * * *"
-      timezone: "Asia/Tokyo"
+    # UTC only: 09:15/17:15 JST and 10:15 Pacific in both PDT/PST.
+    - cron: "15 0,8,17,18 * * *"
   workflow_dispatch:
     inputs:
       verify_buffer:
