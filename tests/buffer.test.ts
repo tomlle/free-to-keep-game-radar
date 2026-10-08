@@ -130,6 +130,54 @@ describe("Buffer publisher", () => {
     assert.equal(variables.input.mode, "shareNow");
   });
 
+  it("finds an already sent post by its store URL", async () => {
+    const requests: Array<Record<string, unknown>> = [];
+    const responses = [
+      { data: { channel: { organizationId: "organization-id" } } },
+      {
+        data: {
+          posts: {
+            edges: [
+              {
+                node: {
+                  id: "existing-post-id",
+                  status: "sent",
+                  text: `announcement\n${campaign.storeUrl}`,
+                  createdAt: "2026-10-08T01:00:00.000Z",
+                  channelId: "channel-id",
+                },
+              },
+            ],
+          },
+        },
+      },
+    ];
+    const fetchMock = (async (_input, init) => {
+      requests.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return new Response(JSON.stringify(responses.shift()), { status: 200 });
+    }) satisfies typeof fetch;
+    const publisher = new BufferPublisher(
+      { apiKey: "secret", channelId: "channel-id" },
+      fetchMock,
+    );
+
+    assert.deepEqual(
+      await publisher.findRecentPostContaining(campaign.storeUrl),
+      {
+        id: "existing-post-id",
+        status: "sent",
+        text: `announcement\n${campaign.storeUrl}`,
+        createdAt: "2026-10-08T01:00:00.000Z",
+        channelId: "channel-id",
+      },
+    );
+    assert.equal(requests.length, 2);
+    assert.deepEqual(requests[1]?.variables, {
+      organizationId: "organization-id",
+      channelId: "channel-id",
+    });
+  });
+
   it("surfaces typed Buffer mutation errors", async () => {
     const fetchMock = (async () =>
       new Response(

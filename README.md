@@ -150,7 +150,7 @@ cron-job.orgから毎日00:15・08:15・17:15・18:15（UTC）にGitHub Actions�
 3. 未投稿のキャンペーンをXへ投稿
 4. 期間限定無料配布の処理完了後、Steam公式ニュースから有料化予定を探索
 5. 未投稿の有料化告知をXへ投稿
-6. 状態と実行レポートをリポジトリへ保存
+6. 状態をリポジトリへ保存し、実行レポートをGitHub Actions artifactへ保存
 
 GitHub Actions側にはスケジュールを定義せず、手動実行とcron-job.orgからの`workflow_dispatch`だけを受け付けます。
 
@@ -172,7 +172,7 @@ GitHub Actions側にはスケジュールを定義せず、手動実行とcron-j
 
 ## レポート
 
-各実行についてMarkdownとJSONを新規作成します。既存レポートは上書きしません。
+各実行についてMarkdownとJSONを作成し、GitHub Actions artifactへ30日間保存します。新規検出、投稿試行、またはエラーがあった実行だけは、追跡しやすいようリポジトリにも保存します。既存レポートは上書きしません。
 
 ```text
 reports/YYYY/MM/YYYY-MM-DD_HHMMSS_JST_run-RUN_ID_attempt-N.md
@@ -183,6 +183,10 @@ reports/paid-transitions/YYYY/MM/YYYY-MM-DD_HHMMSS_JST_run-RUN_ID_attempt-N.json
 ```
 
 レポートには実行日時、検出件数、投稿結果、検出商品、エラーを記録します。認証情報や外部サービスのレスポンス全文は保存しません。
+
+## 障害通知
+
+GitHub ActionsのRepository secretに`DISCORD_WEBHOOK_URL`を設定すると、検出、投稿、状態保存などでworkflowが失敗した際にDiscordへ実行URLを通知します。cron-job.orgからGitHub Actionsを起動できなかった場合はworkflow自体が開始されないため、その障害はcron-job.org側の失敗通知で監視します。
 
 ## 開発
 

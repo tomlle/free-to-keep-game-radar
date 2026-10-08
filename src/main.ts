@@ -3,12 +3,15 @@ import { loadConfig } from "./config.js";
 import { HttpError } from "./http.js";
 import { BufferPublisher } from "./publishers/buffer.js";
 import { SteamProvider } from "./providers/steam.js";
-import { writeReport } from "./report.js";
+import { shouldPersistReport, writeReport } from "./report.js";
 import { loadState, reconcilePromotions, saveState } from "./state.js";
 import type { PostResult, Promotion, ReportError, RunReport } from "./types.js";
 
 const STATE_PATH = resolve("data/state.json");
-const REPORT_ROOT = resolve("reports");
+const RUN_REPORT_ROOT = resolve(process.env.RUN_REPORT_ROOT ?? "reports");
+const PERSISTENT_REPORT_ROOT = process.env.PERSISTENT_REPORT_ROOT
+  ? resolve(process.env.PERSISTENT_REPORT_ROOT)
+  : undefined;
 
 function runMetadata(startedAt: string): RunReport["run"] {
   const repository = process.env.GITHUB_REPOSITORY;
@@ -39,6 +42,8 @@ function baseReport(startedAt: string): RunReport {
       newPromotions: 0,
       knownPromotions: 0,
       excluded: 0,
+      sourceHealthy: false,
+      emptyResultValidated: false,
     },
     posting: { succeeded: 0, failed: 0, skipped: 0 },
     activePromotions: [],
@@ -86,6 +91,8 @@ async function run(): Promise<number> {
     report.detection.candidates = scan.candidates;
     report.detection.verified = scan.promotions.length;
     report.detection.excluded = scan.excluded;
+    report.detection.sourceHealthy = scan.sourceHealthy;
+    report.detection.emptyResultValidated = scan.emptyResultValidated;
 
     const now = new Date().toISOString();
     const reconciliation = reconcilePromotions(
@@ -131,6 +138,23 @@ async function run(): Promise<number> {
 
       campaign.postAttempts += 1;
       try {
+        const existing = await publisher.findRecentPostContaining(
+          campaign.storeUrl,
+        );
+        if (existing) {
+          campaign.postStatus = "sent";
+          campaign.bufferPostId = existing.id;
+          campaign.postedAt =
+            existing.sentAt ?? existing.createdAt ?? new Date().toISOString();
+          delete campaign.lastPostError;
+          result.status = "sent";
+          result.reason = "Recovered from Buffer sent-post history";
+          result.bufferPostId = existing.id;
+          report.posting.succeeded += 1;
+          report.posts.push(result);
+          continue;
+        }
+
         const posted = await publisher.publish(campaign);
         campaign.postStatus = "sent";
         campaign.bufferPostId = posted.id;
@@ -174,9 +198,18 @@ async function run(): Promise<number> {
         ? "partial_failure"
         : "success";
     }
-    const paths = await writeReport(REPORT_ROOT, report);
+    const paths = await writeReport(RUN_REPORT_ROOT, report);
     console.log(`Markdown report: ${paths.markdown}`);
     console.log(`JSON report: ${paths.json}`);
+    if (
+      PERSISTENT_REPORT_ROOT &&
+      PERSISTENT_REPORT_ROOT !== RUN_REPORT_ROOT &&
+      shouldPersistReport(report)
+    ) {
+      const persistentPaths = await writeReport(PERSISTENT_REPORT_ROOT, report);
+      console.log(`Persistent Markdown report: ${persistentPaths.markdown}`);
+      console.log(`Persistent JSON report: ${persistentPaths.json}`);
+    }
     console.log(
       `Detected ${report.detection.newPromotions} new promotion(s); posted ${report.posting.succeeded}.`,
     );

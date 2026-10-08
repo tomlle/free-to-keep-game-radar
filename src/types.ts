@@ -95,6 +95,8 @@ export interface RunReport {
     newPromotions: number;
     knownPromotions: number;
     excluded: number;
+    sourceHealthy: boolean;
+    emptyResultValidated: boolean;
   };
   posting: {
     succeeded: number;

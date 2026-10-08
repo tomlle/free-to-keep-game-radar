@@ -17,15 +17,17 @@ export interface PaidTransitionPost {
   notBeforeAt?: string;
 }
 
-interface BufferResponse {
-  data?: {
-    createPost?: {
-      __typename: string;
-      post?: { id: string; status: string };
-      message?: string;
-    };
-  };
+interface BufferResponse<T> {
+  data?: T;
   errors?: Array<{ message?: string }>;
+}
+
+export interface RecentBufferPost {
+  id: string;
+  status: string;
+  text: string;
+  createdAt?: string;
+  sentAt?: string;
 }
 
 function plainTextWeight(value: string): number {
@@ -194,40 +196,111 @@ export class BufferPublisher {
     return this.publishText(buildPostText(campaign));
   }
 
+  async findRecentPostContaining(
+    textFragment: string,
+  ): Promise<RecentBufferPost | undefined> {
+    const channelData = await this.request<{
+      channel?: { organizationId?: string };
+    }>(
+      `
+        query ChannelOrganization($channelId: ChannelId!) {
+          channel(input: { id: $channelId }) { organizationId }
+        }
+      `,
+      { channelId: this.credentials.channelId },
+    );
+    const organizationId = channelData.channel?.organizationId;
+    if (!organizationId) {
+      throw new Error("Buffer channel did not include an organization ID");
+    }
+
+    const postsData = await this.request<{
+      posts?: {
+        edges?: Array<{
+          node?: RecentBufferPost & { channelId?: string };
+        }>;
+      };
+    }>(
+      `
+        query RecentSentPosts(
+          $organizationId: OrganizationId!
+          $channelId: ChannelId!
+        ) {
+          posts(
+            first: 100
+            input: {
+              organizationId: $organizationId
+              sort: [{ field: createdAt, direction: desc }]
+              filter: { status: [sent], channelIds: [$channelId] }
+            }
+          ) {
+            edges { node { id status text createdAt sentAt channelId } }
+          }
+        }
+      `,
+      { organizationId, channelId: this.credentials.channelId },
+    );
+
+    return postsData.posts?.edges
+      ?.map((edge) => edge.node)
+      .find((post) => post?.text.includes(textFragment));
+  }
+
   async publishText(text: string): Promise<{ id: string; status: string }> {
+    const data = await this.request<{
+      createPost?: {
+        __typename: string;
+        post?: { id: string; status: string };
+        message?: string;
+      };
+    }>(
+      `
+        mutation CreatePost($input: CreatePostInput!) {
+          createPost(input: $input) {
+            __typename
+            ... on PostActionSuccess {
+              post { id status }
+            }
+            ... on MutationError { message }
+          }
+        }
+      `,
+      {
+        input: {
+          text,
+          channelId: this.credentials.channelId,
+          schedulingType: "automatic",
+          mode: "shareNow",
+        },
+      },
+    );
+
+    const result = data.createPost;
+    if (result?.__typename !== "PostActionSuccess" || !result.post) {
+      throw new Error(
+        `Buffer rejected the post: ${result?.message ?? result?.__typename ?? "unknown error"}`,
+      );
+    }
+    return { id: result.post.id, status: result.post.status };
+  }
+
+  private async request<T>(
+    query: string,
+    variables: Record<string, unknown>,
+  ): Promise<T> {
     const response = await this.fetchImpl(BUFFER_API_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.credentials.apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        query: `
-          mutation CreatePost($input: CreatePostInput!) {
-            createPost(input: $input) {
-              __typename
-              ... on PostActionSuccess {
-                post { id status }
-              }
-              ... on MutationError { message }
-            }
-          }
-        `,
-        variables: {
-          input: {
-            text,
-            channelId: this.credentials.channelId,
-            schedulingType: "automatic",
-            mode: "shareNow",
-          },
-        },
-      }),
+      body: JSON.stringify({ query, variables }),
       signal: AbortSignal.timeout(30_000),
     });
 
-    let payload: BufferResponse;
+    let payload: BufferResponse<T>;
     try {
-      payload = (await response.json()) as BufferResponse;
+      payload = (await response.json()) as BufferResponse<T>;
     } catch {
       throw new Error(
         `Buffer API returned invalid JSON (HTTP ${response.status})`,
@@ -243,12 +316,9 @@ export class BufferPublisher {
       );
     }
 
-    const result = payload.data?.createPost;
-    if (result?.__typename !== "PostActionSuccess" || !result.post) {
-      throw new Error(
-        `Buffer rejected the post: ${result?.message ?? result?.__typename ?? "unknown error"}`,
-      );
+    if (!payload.data) {
+      throw new Error("Buffer API response did not include data");
     }
-    return { id: result.post.id, status: result.post.status };
+    return payload.data;
   }
 }

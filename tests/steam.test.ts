@@ -5,6 +5,7 @@ import {
   parseSteamSearchHtml,
   validateTemporaryPlayStoreItem,
   validateSteamAppDetails,
+  validateSteamSearchResponse,
 } from "../src/providers/steam.js";
 
 describe("Steam promotion parsing", () => {
@@ -165,5 +166,23 @@ describe("Steam promotion parsing", () => {
       },
     );
     assert.equal(validateTemporaryPlayStoreItem({}), undefined);
+  });
+
+  it("rejects malformed search responses and validates a healthy probe", () => {
+    assert.throws(
+      () => validateSteamSearchResponse({ success: 0 }),
+      /did not return a successful response/u,
+    );
+    assert.deepEqual(
+      validateSteamSearchResponse(
+        {
+          success: 1,
+          total_count: 1,
+          results_html: '<a class="search_result_row"></a>',
+        },
+        true,
+      ),
+      { total: 1, html: '<a class="search_result_row"></a>' },
+    );
   });
 });

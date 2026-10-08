@@ -33,10 +33,10 @@ jobs:
         run: echo "trigger_source=$TRIGGER_SOURCE"
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
           cache: npm
@@ -64,6 +64,8 @@ jobs:
           STEAM_LANGUAGE: ${{ vars.STEAM_LANGUAGE }}
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
           BUFFER_CHANNEL_ID: ${{ secrets.BUFFER_CHANNEL_ID }}
+          RUN_REPORT_ROOT: .run-reports/free-to-keep
+          PERSISTENT_REPORT_ROOT: reports
 
       - name: Detect and publish upcoming paid games
         id: paid_transitions
@@ -74,6 +76,18 @@ jobs:
           STEAM_COUNTRY: ${{ vars.STEAM_COUNTRY }}
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
           BUFFER_CHANNEL_ID: ${{ secrets.BUFFER_CHANNEL_ID }}
+          RUN_REPORT_ROOT: .run-reports/paid-transitions
+          PERSISTENT_REPORT_ROOT: reports/paid-transitions
+
+      - name: Upload run reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: radar-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .run-reports/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Commit state and append-only reports
         if: always()
@@ -87,9 +101,44 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Add radar report for $(date -u +%Y-%m-%d)"
-          git push
+          git commit -m "Update radar state for $(date -u +%Y-%m-%d)"
+
+          for attempt in 1 2 3; do
+            if git pull --rebase origin main && git push origin HEAD:main; then
+              exit 0
+            fi
+
+            git rebase --abort 2>/dev/null || true
+            sleep $((attempt * 2))
+          done
+
+          echo "Failed to persist radar state after 3 attempts" >&2
+          exit 1
 
       - name: Propagate radar failure
         if: steps.free_to_keep.outcome == 'failure' || steps.paid_transitions.outcome == 'failure'
         run: exit 1
+
+      - name: Notify Discord on failure
+        if: failure()
+        continue-on-error: true
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "DISCORD_WEBHOOK_URL is not configured; skipping notification"
+            exit 0
+          fi
+
+          payload=$(jq -n \
+            --arg repository "$REPOSITORY" \
+            --arg run_url "$RUN_URL" \
+            '{content: ("🚨 **" + $repository + "** の無料ゲームレーダーが失敗しました。\n" + $run_url)}')
+
+          curl --fail-with-body --retry 2 \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
+            "$DISCORD_WEBHOOK_URL"

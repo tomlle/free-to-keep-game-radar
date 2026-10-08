@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { renderMarkdown, reportPaths } from "../src/report.js";
+import {
+  renderMarkdown,
+  reportPaths,
+  shouldPersistReport,
+} from "../src/report.js";
 import type { RunReport } from "../src/types.js";
 
 const report: RunReport = {
@@ -21,6 +25,8 @@ const report: RunReport = {
     newPromotions: 1,
     knownPromotions: 0,
     excluded: 0,
+    sourceHealthy: true,
+    emptyResultValidated: false,
   },
   posting: { succeeded: 0, failed: 0, skipped: 1 },
   activePromotions: [],
@@ -43,5 +49,19 @@ describe("append-only reports", () => {
     assert.match(markdown, /## 検出結果/u);
     assert.match(markdown, /## 投稿結果/u);
     assert.match(markdown, /## エラー/u);
+  });
+
+  it("persists only reports containing new events, posting attempts, or errors", () => {
+    assert.equal(shouldPersistReport(report), true);
+    assert.equal(
+      shouldPersistReport({
+        ...report,
+        detection: { ...report.detection, newPromotions: 0 },
+        posting: { succeeded: 0, failed: 0, skipped: 0 },
+        posts: [],
+        errors: [],
+      }),
+      false,
+    );
   });
 });

@@ -73,6 +73,8 @@ export function renderMarkdown(report: RunReport): string {
     `- 新規キャンペーン: ${report.detection.newPromotions}`,
     `- 既知のキャンペーン: ${report.detection.knownPromotions}`,
     `- 除外件数: ${report.detection.excluded}`,
+    `- Steam取得状態: ${report.detection.sourceHealthy ? "正常" : "異常"}`,
+    `- 0件時ヘルスチェック: ${report.detection.emptyResultValidated ? "確認済み" : "対象外"}`,
     "",
     "## 投稿結果",
     "",
@@ -114,6 +116,14 @@ export function renderMarkdown(report: RunReport): string {
   }
 
   return `${lines.join("\n")}\n`;
+}
+
+export function shouldPersistReport(report: RunReport): boolean {
+  return (
+    report.detection.newPromotions > 0 ||
+    report.posts.length > 0 ||
+    report.errors.length > 0
+  );
 }
 
 export async function writeReport(

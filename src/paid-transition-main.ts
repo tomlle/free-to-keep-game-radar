@@ -7,12 +7,22 @@ import {
   type PaidTransitionProductState,
 } from "./paid-transition.js";
 import {
+  renderPaidTransitionMarkdown,
+  shouldPersistPaidTransitionReport,
+  type PaidTransitionReport,
+} from "./paid-transition-report.js";
+import {
   buildPaidTransitionPostText,
   BufferPublisher,
 } from "./publishers/buffer.js";
 
 const STATE_PATH = resolve("data/paid-transition-state.json");
-const REPORT_ROOT = resolve("reports/paid-transitions");
+const RUN_REPORT_ROOT = resolve(
+  process.env.RUN_REPORT_ROOT ?? "reports/paid-transitions",
+);
+const PERSISTENT_REPORT_ROOT = process.env.PERSISTENT_REPORT_ROOT
+  ? resolve(process.env.PERSISTENT_REPORT_ROOT)
+  : undefined;
 
 interface State {
   schemaVersion: 2;
@@ -43,7 +53,10 @@ async function saveState(state: State): Promise<void> {
   await rename(temporary, STATE_PATH);
 }
 
-function jstStamp(date: Date): { directory: string; stem: string } {
+function jstStamp(
+  root: string,
+  date: Date,
+): { directory: string; stem: string } {
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Tokyo",
@@ -60,7 +73,7 @@ function jstStamp(date: Date): { directory: string; stem: string } {
   );
   const runId = process.env.GITHUB_RUN_ID ?? `local-${Date.now()}`;
   return {
-    directory: resolve(REPORT_ROOT, parts.year!, parts.month!),
+    directory: resolve(root, parts.year!, parts.month!),
     stem: `${parts.year}-${parts.month}-${parts.day}_${parts.hour}${parts.minute}${parts.second}_JST_run-${runId}_attempt-${process.env.GITHUB_RUN_ATTEMPT ?? "1"}`,
   };
 }
@@ -98,6 +111,25 @@ async function run(): Promise<number> {
       continue;
     }
     try {
+      const existing = await publisher.findRecentPostContaining(
+        transition.storeUrl,
+      );
+      if (existing) {
+        event.status = "sent";
+        event.postedAt =
+          existing.sentAt ?? existing.createdAt ?? new Date().toISOString();
+        event.bufferPostId = existing.id;
+        delete event.lastError;
+        posts.push({
+          id: event.id,
+          title: transition.title,
+          status: "sent",
+          reason: "Recovered from Buffer sent-post history",
+          bufferPostId: existing.id,
+        });
+        continue;
+      }
+
       const posted = await publisher.publishText(
         buildPaidTransitionPostText(transition),
       );
@@ -124,11 +156,12 @@ async function run(): Promise<number> {
 
   await saveState(state);
   const finishedAt = new Date();
-  const report = {
+  const report: PaidTransitionReport = {
     schemaVersion: 2,
     run: {
       startedAt: startedAt.toISOString(),
       finishedAt: finishedAt.toISOString(),
+      timezone: "Asia/Tokyo",
     },
     detection: {
       searchedQueries: scan.searchedQueries,
@@ -146,45 +179,30 @@ async function run(): Promise<number> {
     posts,
     errors: scan.errors,
   };
-  const { directory, stem } = jstStamp(startedAt);
-  await mkdir(directory, { recursive: true });
-  const markdown = [
-    "# Upcoming Paid Games Report",
-    "",
-    `- 実行日時: ${startedAt.toISOString()}`,
-    `- ニュース検索数: ${report.detection.searchedQueries}`,
-    `- 候補ゲーム数: ${report.detection.candidates}`,
-    `- 検出ゲーム数: ${report.detection.detectedProducts}`,
-    `- 投稿成功: ${report.posting.succeeded}`,
-    `- 投稿失敗: ${report.posting.failed}`,
-    `- 投稿スキップ: ${report.posting.skipped}`,
-    "",
-    "## 検出内容",
-    "",
-    ...(scan.transitions.length
-      ? scan.transitions.map(
-          (item) =>
-            `- [${item.title}](${item.storeUrl}) — News ID: ${item.announcementId}, 有料化最短日: ${item.notBeforeAt ?? "未発表"}`,
-        )
-      : ["検出されませんでした。"]),
-    "",
-    "## エラー",
-    "",
-    ...(scan.errors.length
-      ? scan.errors.map(
-          (error) => `- ${error.productId ?? "-"}: ${error.message}`,
-        )
-      : ["エラーはありません。"]),
-    "",
-  ].join("\n");
-  await Promise.all([
-    writeFile(
-      resolve(directory, `${stem}.json`),
-      `${JSON.stringify(report, null, 2)}\n`,
-      { flag: "wx" },
-    ),
-    writeFile(resolve(directory, `${stem}.md`), markdown, { flag: "wx" }),
-  ]);
+  const write = async (root: string): Promise<void> => {
+    const { directory, stem } = jstStamp(root, startedAt);
+    await mkdir(directory, { recursive: true });
+    await Promise.all([
+      writeFile(
+        resolve(directory, `${stem}.json`),
+        `${JSON.stringify(report, null, 2)}\n`,
+        { flag: "wx" },
+      ),
+      writeFile(
+        resolve(directory, `${stem}.md`),
+        renderPaidTransitionMarkdown(report),
+        { flag: "wx" },
+      ),
+    ]);
+  };
+  await write(RUN_REPORT_ROOT);
+  if (
+    PERSISTENT_REPORT_ROOT &&
+    PERSISTENT_REPORT_ROOT !== RUN_REPORT_ROOT &&
+    shouldPersistPaidTransitionReport(report)
+  ) {
+    await write(PERSISTENT_REPORT_ROOT);
+  }
   console.log(
     `Detected ${report.detection.detectedProducts} upcoming paid game(s); posted ${report.posting.succeeded}.`,
   );

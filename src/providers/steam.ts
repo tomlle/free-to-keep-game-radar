@@ -57,6 +57,8 @@ export interface SteamScanResult {
   promotions: Promotion[];
   excluded: number;
   errors: ReportError[];
+  sourceHealthy: boolean;
+  emptyResultValidated: boolean;
 }
 
 const FREE_TEXT = /(?:^|\s)(?:free|無料)(?:\s|$)|(?:¥|￥)?\s*0(?:円)?/iu;
@@ -125,6 +127,21 @@ export function parseSteamSearchHtml(
   });
 
   return candidates;
+}
+
+export function validateSteamSearchResponse(
+  payload: SteamSearchResponse,
+  requireRows = false,
+): { total: number; html: string } {
+  const total = Number(payload.total_count ?? 0);
+  const html = payload.results_html ?? "";
+  if (payload.success !== 1) {
+    throw new Error("Steam search did not return a successful response");
+  }
+  if (requireRows && (total <= 0 || !html.includes("search_result_row"))) {
+    throw new Error("Steam search health probe returned no product rows");
+  }
+  return { total, html };
 }
 
 export function validateSteamAppDetails(
@@ -235,7 +252,8 @@ export class SteamProvider {
 
       const response = await fetchWithRetry(url.toString());
       const payload = (await response.json()) as SteamSearchResponse;
-      const html = payload.results_html ?? "";
+      const validated = validateSteamSearchResponse(payload);
+      const html = validated.html;
       const freeToKeepRows = parseSteamSearchHtml(html, "free_to_keep");
       const freeToKeepAppIds = new Set(freeToKeepRows.map((row) => row.appId));
       const temporaryPlayRows = parseSteamSearchHtml(
@@ -244,9 +262,8 @@ export class SteamProvider {
       ).filter((row) => !freeToKeepAppIds.has(row.appId));
       const pageRows = [...freeToKeepRows, ...temporaryPlayRows];
       if (
-        Number(payload.total_count ?? 0) > 0 &&
-        html.includes("search_result_row") &&
-        pageRows.length === 0
+        validated.total > 0 &&
+        (!html.includes("search_result_row") || pageRows.length === 0)
       ) {
         throw new Error(
           "Steam promotion search returned rows, but none could be parsed. The storefront markup may have changed.",
@@ -256,9 +273,36 @@ export class SteamProvider {
         allRows.set(`${row.kind}:${row.appId}`, row);
       }
 
-      total = Number(payload.total_count ?? start + pageSize);
+      total = validated.total;
       if (!html.trim()) break;
       start += pageSize;
+    }
+
+    let emptyResultValidated = false;
+    if (total === 0) {
+      const probeUrl = new URL(
+        "https://store.steampowered.com/search/results/",
+      );
+      probeUrl.search = new URLSearchParams({
+        query: "",
+        start: "0",
+        count: "1",
+        dynamic_data: "",
+        sort_by: "_ASC",
+        specials: "1",
+        category1: "998",
+        infinite: "1",
+        force_infinite: "1",
+        cc: this.country.toLowerCase(),
+        l: this.language,
+      }).toString();
+      const probeResponse = await fetchWithRetry(probeUrl.toString());
+      const probePayload = (await probeResponse.json()) as SteamSearchResponse;
+      const probe = validateSteamSearchResponse(probePayload, true);
+      if (parseSteamSearchHtml(probe.html, "temporary_play").length === 0) {
+        throw new Error("Steam search health probe rows could not be parsed");
+      }
+      emptyResultValidated = true;
     }
 
     const promotions: Promotion[] = [];
@@ -360,6 +404,8 @@ export class SteamProvider {
       promotions,
       excluded,
       errors,
+      sourceHealthy: true,
+      emptyResultValidated,
     };
   }
 }
