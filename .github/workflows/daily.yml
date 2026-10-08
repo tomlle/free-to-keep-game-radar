@@ -2,7 +2,9 @@ name: Daily free-to-keep scan
 
 on:
   schedule:
-    - cron: "45 11 * * *"
+    - cron: "15 10 * * *"
+      timezone: "America/Los_Angeles"
+    - cron: "15 9,17 * * *"
       timezone: "Asia/Tokyo"
   workflow_dispatch:
     inputs:
