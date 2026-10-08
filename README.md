@@ -10,6 +10,52 @@
 
 cron-job.orgからGitHub Actionsを定期起動し、検出、投稿、状態更新、実行レポートの保存を行います。
 
+## システム構成
+
+```mermaid
+flowchart TD
+    Cron["cron-job.org<br/>毎日 02:15・03:15・09:15・17:15 JST"]
+    Manual["GitHub Actions画面<br/>手動実行"]
+    API["GitHub REST API<br/>workflow_dispatch"]
+
+    Cron -->|"PATで認証したPOST<br/>daily.yml / mainを指定"| API
+    Manual --> API
+
+    subgraph Actions["GitHub Actions: daily.yml"]
+        Workflow["workflow_dispatchを受信"]
+        Prepare["Checkout → npm ci → npm run check"]
+        Promotions["npm start<br/>無料配布・一時プレイ無料を検出"]
+        Paid["npm run start:paid-transitions<br/>有料化予定を検出"]
+        Commit["状態とレポートに変更があれば<br/>mainへcommit・push"]
+
+        Workflow --> Prepare --> Promotions --> Paid --> Commit
+    end
+
+    API --> Workflow
+
+    Steam["Steam Store<br/>検索・商品詳細・公式ニュース"]
+    State[("data/*.json<br/>投稿済み状態")]
+    Reports[("reports/<br/>Markdown・JSON")]
+    Buffer["Buffer API"]
+    X["X"]
+    Repository["GitHub repository<br/>main"]
+
+    Steam -->|"候補と商品情報"| Promotions
+    Steam -->|"公式ニュースと商品情報"| Paid
+    State <-->|"重複判定・状態更新"| Promotions
+    State <-->|"イベント判定・状態更新"| Paid
+    Promotions -->|"未投稿だけ送信"| Buffer
+    Paid -->|"未投稿だけ送信"| Buffer
+    Buffer --> X
+    Promotions --> Reports
+    Paid --> Reports
+    Commit --> Repository
+```
+
+cron-job.orgが行うのは、GitHub REST APIへリクエストを送り、`workflow_dispatch`による実行を作成するところまでです。APIが成功を返した後、実際の検出や投稿はGitHub Actions上で非同期に進みます。そのため、cron-job.orgの成功は「GitHub Actionsの起動受付に成功した」ことを示し、検出・投稿処理の最終結果はGitHub Actionsの実行履歴で確認します。
+
+GitHub ActionsはSteamから取得した情報と`data/*.json`の保存済み状態を比較し、未投稿の情報だけをBuffer経由でXへ送信します。最後に更新した状態と実行レポートを`main`へ保存します。
+
 ## 投稿例
 
 ### 期間限定無料配布
@@ -109,46 +155,6 @@ cron-job.orgから毎日00:15・08:15・17:15・18:15（UTC）にGitHub Actions�
 GitHub Actions側にはスケジュールを定義せず、手動実行とcron-job.orgからの`workflow_dispatch`だけを受け付けます。
 
 投稿状態をリポジトリ内に保持するため、同じキャンペーンは重複投稿しません。有料化予定はApp ID単位のイベントとして管理し、複数の続報が公開されても再投稿せず、関連ニュースとして同じイベントへ記録します。実際に有料化された後、再び無料化されて新しい有料化告知が出た場合だけ、次の世代のイベントとして扱います。
-
-## cron-job.orgの設定
-
-GitHubでFine-grained personal access tokenを作成し、Repository accessをこのリポジトリだけに限定して、Repository permissionsの`Actions`へ`Read and write`を付与します。トークンはリポジトリへ保存せず、cron-job.orgのリクエストヘッダーだけに設定します。
-
-[cron-job.org Console](https://console.cron-job.org/)で次のジョブを作成します。
-
-- Title: `free-to-keep-game-radar`
-- URL: `https://api.github.com/repos/tomlle/free-to-keep-game-radar/actions/workflows/daily.yml/dispatches`
-- Request method: `POST`
-- Schedule timezone: `UTC`
-- Schedule: 毎日、時刻は`00:15`・`08:15`・`17:15`・`18:15`
-- Request timeout: `30`秒
-- Save responses: 有効
-- Failure notification: 1回目の失敗から通知
-- Success notification: 障害復旧時に通知
-
-リクエストヘッダーは次のとおりです。`YOUR_FINE_GRAINED_PAT`は作成したトークンへ置き換えます。
-
-```text
-Accept: application/vnd.github+json
-Authorization: Bearer YOUR_FINE_GRAINED_PAT
-Content-Type: application/json
-X-GitHub-Api-Version: 2026-03-10
-```
-
-リクエスト本文には次のJSONを設定します。
-
-```json
-{
-  "ref": "main",
-  "inputs": {
-    "verify_buffer": false,
-    "trigger_source": "cron-job.org"
-  },
-  "return_run_details": true
-}
-```
-
-保存後にcron-job.orgのテスト実行を行い、GitHub Actionsに`workflow_dispatch`の実行が作成され、`Record trigger source`へ`cron-job.org`と記録されることを確認します。cron-job.orgのアカウントには多要素認証を設定し、PATの有効期限前に更新します。
 
 ## ディレクトリ構成
 
