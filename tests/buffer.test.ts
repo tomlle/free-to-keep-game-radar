@@ -78,6 +78,8 @@ describe("Buffer publisher", () => {
     assert.doesNotMatch(text, /終了後も遊ぶには購入が必要/u);
     assert.match(text, /⏰ 10\/5 09:00〜10\/8 09:00/u);
     assert.doesNotMatch(text, /JST/u);
+    assert.ok(text.indexOf("⏰") < text.indexOf("気になってたゲームを"));
+    assert.match(text, /⏰ 10\/5 09:00〜10\/8 09:00\n\n気になってたゲームを/u);
     assert.match(text, /#ゲーム無料プレイ #Steam #もろとこ/u);
     assert.doesNotMatch(text, /無料配布🎁|100% OFF/u);
     assert.ok(xWeightedLength(text) <= 280);

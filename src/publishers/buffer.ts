@@ -80,7 +80,6 @@ export function buildPostText(campaign: CampaignState): string {
         "",
         `『${title}』`,
         "期間限定で無料プレイ",
-        "気になってたゲームを、この機会に遊んでみよう！",
       ];
       if (campaign.startsAt && campaign.endsAt) {
         lines.push(
@@ -91,6 +90,7 @@ export function buildPostText(campaign: CampaignState): string {
       } else if (campaign.startsAt) {
         lines.push(`⏰ ${formatJst(campaign.startsAt)}から`);
       }
+      lines.push("", "気になってたゲームを、この機会に遊んでみよう！");
       lines.push(
         "",
         campaign.storeUrl,
