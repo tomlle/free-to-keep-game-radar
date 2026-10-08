@@ -20,13 +20,14 @@
       "event": {
         "id": "steam:3594170:paid-transition:1",
         "status": "sent",
-        "active": true,
+        "active": false,
         "announcementIds": [
           "1845383656377048"
         ],
         "firstSeenAt": "2026-10-06T14:46:49.195Z",
         "postedAt": "2026-10-06T14:52:00.791Z",
-        "bufferPostId": "6ac50b0f0c0a17c2690bb283"
+        "bufferPostId": "6ac50b0f0c0a17c2690bb283",
+        "convertedAt": "2026-10-08T12:15:57.436Z"
       }
     },
     "steam:4319430": {
