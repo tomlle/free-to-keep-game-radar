@@ -4,22 +4,21 @@
 
 現在はSteamに対応し、次の2種類を監視しています。
 
-- 有料ゲームの期間限定100%割引（Free-to-Keep）
+- 有料ゲームの期間限定無料配布（100%割引）
 - 現在は無料だが、今後有料化されるゲーム
 
 検出、投稿、状態更新、実行レポートの保存までGitHub Actionsだけで動作します。
 
 ## 投稿例
 
-### Free-to-Keep
+### 期間限定無料配布
 
 ```text
-🎁 無料配布きたで
+無料配布🎁
 
 『ゲームタイトル』
 ¥1,200 → 無料（100% OFF）
 ⏰ 10/8 09:00まで
-もらえるもんは、もろとこ。
 
 https://store.steampowered.com/app/000000/
 
@@ -29,11 +28,10 @@ https://store.steampowered.com/app/000000/
 ### 有料化予定
 
 ```text
-⚠️ もうすぐ有料になるで
+もうすぐ有料⚠️
 
 『ゲームタイトル』
 現在無料 → 10月13日以降に有料化予定
-もらえるもんは、今のうちにもろとこ。
 
 https://store.steampowered.com/app/000000/
 
@@ -44,7 +42,7 @@ https://store.steampowered.com/app/000000/
 
 ## 検出条件
 
-### Free-to-Keep
+### 期間限定無料配布
 
 以下をすべて満たすSteam商品を対象にします。
 
@@ -73,9 +71,9 @@ Steam公式ニュースを有料化に関する複数の表現で検索し、見
 毎日、00:15・08:15・17:15・18:15（UTC）に、次の順番で実行します。日本時間では09:15・17:15・翌02:15・翌03:15です。17:15・18:15（UTC）の2回は、Steamの標準更新時刻である10:00（America/Los_Angeles）の夏時間と冬時間をそれぞれカバーします。GitHub Actionsのタイムゾーン対応スケジュールに依存しないよう、cronはすべてUTCで定義しています。
 
 1. Steam Storeから100%割引候補を取得
-2. 商品詳細を使ってFree-to-Keepの条件を再検証
+2. 商品詳細を使って期間限定無料配布の条件を再検証
 3. 未投稿のキャンペーンをXへ投稿
-4. Free-to-Keepの処理完了後、Steam公式ニュースから有料化予定を探索
+4. 期間限定無料配布の処理完了後、Steam公式ニュースから有料化予定を探索
 5. 未投稿の有料化告知をXへ投稿
 6. 状態と実行レポートをリポジトリへ保存
 
@@ -89,7 +87,7 @@ Steam公式ニュースを有料化に関する複数の表現で検索し、見
 .
 ├─ .github/workflows/       GitHub Actions
 ├─ data/                    検出対象と重複投稿防止の状態
-├─ reports/                 Free-to-Keepの実行レポート
+├─ reports/                 期間限定無料配布の実行レポート
 │  └─ paid-transitions/     有料化予定の実行レポート
 ├─ src/
 │  ├─ providers/            ストアごとの検出処理
@@ -123,7 +121,7 @@ npm run check
 主なコマンド：
 
 ```shell
-npm start                         # Free-to-Keepを検出
+npm start                         # 期間限定無料配布を検出
 npm run start:paid-transitions    # 有料化予定を検出
 npm test                          # 単体テスト
 npm run typecheck                 # 型チェック

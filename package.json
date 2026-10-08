@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Detect free-to-keep game promotions, publish them, and retain append-only reports.",
+  "description": "期間限定無料配布を検出・投稿し、追記型レポートを保存します。",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "npm run format:check && npm run typecheck && npm test",

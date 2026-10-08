@@ -42,7 +42,7 @@ function promotionLine(promotion: Promotion): string {
 
 export function renderMarkdown(report: RunReport): string {
   const lines = [
-    "# Free-to-Keep Game Radar Report",
+    "# 期間限定無料配布レーダー 実行レポート",
     "",
     "## 実行情報",
     "",

@@ -1,4 +1,4 @@
-name: Daily free-to-keep scan
+name: 期間限定無料配布レーダー
 
 on:
   schedule:
@@ -47,7 +47,7 @@ jobs:
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
           BUFFER_CHANNEL_ID: ${{ secrets.BUFFER_CHANNEL_ID }}
 
-      - name: Detect and publish Free-to-Keep promotions
+      - name: 期間限定無料配布を検出・投稿
         id: free_to_keep
         continue-on-error: true
         run: npm start

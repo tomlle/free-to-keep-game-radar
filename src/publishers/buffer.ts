@@ -74,19 +74,13 @@ function formatJst(value: string): string {
 export function buildPostText(campaign: CampaignState): string {
   const render = (title: string): string => {
     const lines = [
-      "🎁 無料配布きたで",
+      "無料配布🎁",
       "",
       `『${title}』`,
       `${formatPrice(campaign.initialPrice, campaign.currency)} → 無料（100% OFF）`,
     ];
     if (campaign.endsAt) lines.push(`⏰ ${formatJst(campaign.endsAt)}まで`);
-    lines.push(
-      "もらえるもんは、もろとこ。",
-      "",
-      campaign.storeUrl,
-      "",
-      "#ゲーム無料配布 #Steam #もろとこ",
-    );
+    lines.push("", campaign.storeUrl, "", "#ゲーム無料配布 #Steam #もろとこ");
     return lines.join("\n");
   };
 
@@ -129,11 +123,10 @@ export function buildPaidTransitionPostText(
   }
   const render = (title: string): string =>
     [
-      "⚠️ もうすぐ有料になるで",
+      "もうすぐ有料⚠️",
       "",
       `『${title}』`,
       `現在無料 → ${timing}`,
-      "もらえるもんは、今のうちにもろとこ。",
       "",
       transition.storeUrl,
       "",

@@ -38,6 +38,7 @@ describe("append-only reports", () => {
 
   it("contains execution, detection, posting, and error sections", () => {
     const markdown = renderMarkdown(report);
+    assert.match(markdown, /^# 期間限定無料配布レーダー 実行レポート$/mu);
     assert.match(markdown, /## 実行情報/u);
     assert.match(markdown, /## 検出結果/u);
     assert.match(markdown, /## 投稿結果/u);
