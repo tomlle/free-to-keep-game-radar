@@ -1,10 +1,18 @@
 import { resolve } from "node:path";
 import { loadConfig } from "./config.js";
 import { HttpError } from "./http.js";
-import { BufferPublisher } from "./publishers/buffer.js";
+import {
+  buildEndingReminderPostText,
+  BufferPublisher,
+} from "./publishers/buffer.js";
 import { SteamProvider } from "./providers/steam.js";
 import { shouldPersistReport, writeReport } from "./report.js";
-import { loadState, reconcilePromotions, saveState } from "./state.js";
+import {
+  loadState,
+  reconcilePromotions,
+  saveState,
+  shouldSendEndingReminder,
+} from "./state.js";
 import type { PostResult, Promotion, ReportError, RunReport } from "./types.js";
 
 const STATE_PATH = resolve("data/state.json");
@@ -123,6 +131,7 @@ async function run(): Promise<number> {
 
     for (const campaign of pending) {
       const result: PostResult = {
+        type: "campaign",
         campaignId: campaign.id,
         productId: campaign.productId,
         title: campaign.title,
@@ -176,6 +185,65 @@ async function run(): Promise<number> {
           message,
           productId: campaign.productId,
           retryCount: campaign.postAttempts,
+        });
+        exitCode = 1;
+      }
+      report.posts.push(result);
+    }
+
+    const reminderNow = new Date().toISOString();
+    const endingSoon = Object.values(state.campaigns).filter(
+      (campaign) =>
+        activePromotionKeys.has(
+          `${campaign.kind ?? "free_to_keep"}:${campaign.productId}`,
+        ) && shouldSendEndingReminder(campaign, reminderNow, startedAt),
+    );
+
+    for (const campaign of endingSoon) {
+      const result: PostResult = {
+        type: "ending_reminder",
+        campaignId: campaign.id,
+        productId: campaign.productId,
+        title: campaign.title,
+        status: "skipped",
+      };
+
+      if (!config.postToX || !publisher) {
+        result.reason = "POST_TO_X is not enabled; reminder remains pending";
+        report.posting.skipped += 1;
+        report.posts.push(result);
+        continue;
+      }
+
+      campaign.endingReminderAttempts =
+        (campaign.endingReminderAttempts ?? 0) + 1;
+      try {
+        const text = buildEndingReminderPostText(campaign);
+        const existing = await publisher.findRecentPostContaining(text);
+        const posted = existing ?? (await publisher.publishText(text));
+        campaign.endingReminderBufferPostId = posted.id;
+        campaign.endingReminderPostedAt =
+          existing?.sentAt ?? existing?.createdAt ?? new Date().toISOString();
+        delete campaign.lastEndingReminderError;
+        result.status = "sent";
+        result.reason = existing
+          ? "Recovered from Buffer sent-post history"
+          : "Ending reminder sent";
+        result.bufferPostId = posted.id;
+        report.posting.succeeded += 1;
+      } catch (error) {
+        const message = sanitizeError(error);
+        campaign.lastEndingReminderError = message;
+        result.status = "failed";
+        result.reason = message;
+        report.posting.failed += 1;
+        report.errors.push({
+          stage: "buffer_post",
+          severity: "error",
+          code: "BUFFER_REMINDER_FAILED",
+          message,
+          productId: campaign.productId,
+          retryCount: campaign.endingReminderAttempts,
         });
         exitCode = 1;
       }

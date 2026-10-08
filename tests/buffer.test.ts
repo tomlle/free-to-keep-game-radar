@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   BufferPublisher,
+  buildEndingReminderPostText,
   buildPaidTransitionPostText,
   buildPostText,
   xWeightedLength,
@@ -51,6 +52,22 @@ describe("Buffer publisher", () => {
     assert.ok(xWeightedLength(text) <= 280);
   });
 
+  it("prefers a relative free period in an upcoming-paid post", () => {
+    const text = buildPaidTransitionPostText({
+      title: "Hex Reverse",
+      storeUrl: "https://store.steampowered.com/app/5257350/",
+      relativeFreePeriod: {
+        amount: 30,
+        unit: "day",
+        anchor: "release",
+      },
+    });
+
+    assert.match(text, /リリース後30日間は無料 → その後有料化予定/u);
+    assert.doesNotMatch(text, /近日中/u);
+    assert.ok(xWeightedLength(text) <= 280);
+  });
+
   it("builds an X post containing the promotion link", () => {
     const text = buildPostText(campaign);
     assert.match(text, /Test Game/u);
@@ -61,6 +78,16 @@ describe("Buffer publisher", () => {
     assert.doesNotMatch(text, /もらえるもんは/u);
     assert.match(text, /#ゲーム無料配布 #Steam #もろとこ/u);
     assert.doesNotMatch(text, /Epic Gamesなど/u);
+    assert.match(text, /https:\/\/store\.steampowered\.com\/app\/100\//u);
+    assert.ok(xWeightedLength(text) <= 280);
+  });
+
+  it("builds a one-time ending reminder", () => {
+    const text = buildEndingReminderPostText(campaign);
+
+    assert.match(text, /まもなく終了⏰/u);
+    assert.match(text, /無料配布は 10\/8 09:00まで/u);
+    assert.match(text, /ライブラリへの追加忘れに注意！/u);
     assert.match(text, /https:\/\/store\.steampowered\.com\/app\/100\//u);
     assert.ok(xWeightedLength(text) <= 280);
   });

@@ -40,6 +40,16 @@ function formatDateJst(value: string | undefined): string {
   }).format(new Date(value));
 }
 
+function timingDescription(item: PaidTransition): string {
+  if (item.relativeFreePeriod) {
+    const { amount, unit, anchor } = item.relativeFreePeriod;
+    const unitText =
+      unit === "day" ? "日間" : unit === "week" ? "週間" : "か月間";
+    return `無料期間: ${anchor === "release" ? "リリース後" : "告知後"}${amount}${unitText}`;
+  }
+  return `有料化最短日: ${formatDateJst(item.notBeforeAt)}`;
+}
+
 export function renderPaidTransitionMarkdown(
   report: PaidTransitionReport,
 ): string {
@@ -60,7 +70,7 @@ export function renderPaidTransitionMarkdown(
     ...(report.transitions.length
       ? report.transitions.map(
           (item) =>
-            `- [${item.title}](${item.storeUrl}) — News ID: ${item.announcementId}, 有料化最短日: ${formatDateJst(item.notBeforeAt)}`,
+            `- [${item.title}](${item.storeUrl}) — News ID: ${item.announcementId}, ${timingDescription(item)}`,
         )
       : ["検出されませんでした。"]),
     "",

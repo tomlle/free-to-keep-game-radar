@@ -87,6 +87,11 @@ export function renderMarkdown(report: RunReport): string {
     lines.push("", "### 投稿詳細", "");
     for (const post of report.posts) {
       lines.push(`- ${post.title} (${post.status})`);
+      if (post.type) {
+        lines.push(
+          `  - 種別: ${post.type === "ending_reminder" ? "終了前リマインド" : "初回告知"}`,
+        );
+      }
       lines.push(`  - Campaign: ${post.campaignId}`);
       if (post.bufferPostId)
         lines.push(`  - Buffer Post ID: ${post.bufferPostId}`);

@@ -1,4 +1,4 @@
-import type { CampaignState } from "../types.js";
+import type { CampaignState, RelativeFreePeriod } from "../types.js";
 
 const BUFFER_API_URL = "https://api.buffer.com";
 const X_WEIGHTED_LENGTH_LIMIT = 280;
@@ -15,6 +15,7 @@ export interface PaidTransitionPost {
   title: string;
   storeUrl: string;
   notBeforeAt?: string;
+  relativeFreePeriod?: RelativeFreePeriod;
 }
 
 interface BufferResponse<T> {
@@ -136,11 +137,69 @@ export function buildPostText(campaign: CampaignState): string {
   return result;
 }
 
+export function buildEndingReminderPostText(campaign: CampaignState): string {
+  if (!campaign.endsAt) {
+    throw new Error("An ending reminder requires a campaign end time");
+  }
+  const endsAt = campaign.endsAt;
+
+  const render = (title: string): string => {
+    const campaignType =
+      campaign.kind === "temporary_play" ? "無料プレイ" : "無料配布";
+    const hashtags =
+      campaign.kind === "temporary_play"
+        ? "#ゲーム無料プレイ #Steam #もろとこ"
+        : "#ゲーム無料配布 #Steam #もろとこ";
+    const callToAction =
+      campaign.kind === "temporary_play"
+        ? "遊び忘れに注意！"
+        : "ライブラリへの追加忘れに注意！";
+    return [
+      "まもなく終了⏰",
+      "",
+      `『${title}』`,
+      `${campaignType}は ${formatJst(endsAt)}まで`,
+      "",
+      callToAction,
+      "",
+      campaign.storeUrl,
+      "",
+      hashtags,
+    ].join("\n");
+  };
+
+  const complete = render(campaign.title);
+  if (xWeightedLength(complete) <= X_WEIGHTED_LENGTH_LIMIT) return complete;
+
+  const segmenter = new Intl.Segmenter("ja", { granularity: "grapheme" });
+  let shortened = "";
+  for (const { segment } of segmenter.segment(campaign.title)) {
+    if (
+      xWeightedLength(render(`${shortened}${segment}…`)) >
+      X_WEIGHTED_LENGTH_LIMIT
+    ) {
+      break;
+    }
+    shortened += segment;
+  }
+  const result = render(`${shortened}…`);
+  if (xWeightedLength(result) > X_WEIGHTED_LENGTH_LIMIT) {
+    throw new Error("Ending-reminder X post exceeds the character limit");
+  }
+  return result;
+}
+
 export function buildPaidTransitionPostText(
   transition: PaidTransitionPost,
 ): string {
-  let timing = "近日中に有料化予定";
-  if (transition.notBeforeAt) {
+  let statusLine = "現在無料 → 近日中に有料化予定";
+  if (transition.relativeFreePeriod) {
+    const { amount, unit, anchor } = transition.relativeFreePeriod;
+    const unitText =
+      unit === "day" ? "日間" : unit === "week" ? "週間" : "か月間";
+    const anchorText = anchor === "release" ? "リリース後" : "告知後";
+    statusLine = `${anchorText}${amount}${unitText}は無料 → その後有料化予定`;
+  } else if (transition.notBeforeAt) {
     const parts = Object.fromEntries(
       new Intl.DateTimeFormat("ja-JP", {
         timeZone: POST_TIME_ZONE,
@@ -150,14 +209,14 @@ export function buildPaidTransitionPostText(
         .formatToParts(new Date(transition.notBeforeAt))
         .map(({ type, value }) => [type, value]),
     );
-    timing = `${parts.month}月${parts.day}日以降に有料化予定`;
+    statusLine = `現在無料 → ${parts.month}月${parts.day}日以降に有料化予定`;
   }
   const render = (title: string): string =>
     [
       "もうすぐ有料⚠️",
       "",
       `『${title}』`,
-      `現在無料 → ${timing}`,
+      statusLine,
       "",
       transition.storeUrl,
       "",

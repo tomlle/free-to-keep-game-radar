@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { reconcilePromotions } from "../src/state.js";
+import { reconcilePromotions, shouldSendEndingReminder } from "../src/state.js";
 import type { Promotion, RadarState } from "../src/types.js";
 
 const promotion: Promotion = {
@@ -79,6 +79,67 @@ describe("campaign reconciliation", () => {
     assert.equal(
       current.campaigns["steam:100:temporary_play:1"]?.kind,
       "temporary_play",
+    );
+  });
+
+  it("selects a posted campaign once during its final 12 hours", () => {
+    const current = state();
+    reconcilePromotions(current, [promotion], "2026-10-06T00:00:00Z");
+    const campaign = current.campaigns["steam:100:1"]!;
+    campaign.postStatus = "sent";
+    campaign.postedAt = "2026-10-06T01:00:00Z";
+    campaign.endsAt = "2026-10-07T12:00:00Z";
+
+    assert.equal(
+      shouldSendEndingReminder(
+        campaign,
+        "2026-10-06T23:00:00Z",
+        "2026-10-06T23:00:00Z",
+      ),
+      false,
+    );
+    assert.equal(
+      shouldSendEndingReminder(
+        campaign,
+        "2026-10-07T01:00:00Z",
+        "2026-10-07T01:00:00Z",
+      ),
+      true,
+    );
+    assert.equal(
+      shouldSendEndingReminder(
+        campaign,
+        "2026-10-07T12:00:01Z",
+        "2026-10-07T12:00:01Z",
+      ),
+      false,
+    );
+    campaign.endingReminderPostedAt = "2026-10-07T01:01:00Z";
+    assert.equal(
+      shouldSendEndingReminder(
+        campaign,
+        "2026-10-07T02:00:00Z",
+        "2026-10-07T02:00:00Z",
+      ),
+      false,
+    );
+  });
+
+  it("does not remind in the same run as the initial post", () => {
+    const current = state();
+    reconcilePromotions(current, [promotion], "2026-10-07T01:00:00Z");
+    const campaign = current.campaigns["steam:100:1"]!;
+    campaign.postStatus = "sent";
+    campaign.postedAt = "2026-10-07T01:00:01Z";
+    campaign.endsAt = "2026-10-07T12:00:00Z";
+
+    assert.equal(
+      shouldSendEndingReminder(
+        campaign,
+        "2026-10-07T01:00:02Z",
+        "2026-10-07T01:00:00Z",
+      ),
+      false,
     );
   });
 });

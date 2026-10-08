@@ -1,6 +1,12 @@
 export type StoreId = "steam";
 export type PromotionKind = "free_to_keep" | "temporary_play";
 
+export interface RelativeFreePeriod {
+  amount: number;
+  unit: "day" | "week" | "month";
+  anchor: "release" | "announcement";
+}
+
 export interface Promotion {
   kind: PromotionKind;
   store: StoreId;
@@ -38,6 +44,10 @@ export interface CampaignState {
   bufferPostId?: string;
   postedAt?: string;
   lastPostError?: string;
+  endingReminderAttempts?: number;
+  endingReminderBufferPostId?: string;
+  endingReminderPostedAt?: string;
+  lastEndingReminderError?: string;
 }
 
 export interface ProductState {
@@ -67,6 +77,7 @@ export interface ReportError {
 }
 
 export interface PostResult {
+  type?: "campaign" | "ending_reminder";
   campaignId: string;
   productId: string;
   title: string;

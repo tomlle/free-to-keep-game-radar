@@ -40,6 +40,39 @@ export interface ReconcileResult {
   knownPromotions: number;
 }
 
+const ENDING_REMINDER_WINDOW_MS = 12 * 60 * 60 * 1_000;
+
+export function shouldSendEndingReminder(
+  campaign: CampaignState,
+  now: string,
+  runStartedAt: string,
+): boolean {
+  if (
+    !campaign.active ||
+    campaign.postStatus !== "sent" ||
+    !campaign.endsAt ||
+    !campaign.postedAt ||
+    campaign.endingReminderPostedAt
+  ) {
+    return false;
+  }
+
+  const nowMs = Date.parse(now);
+  const endsAtMs = Date.parse(campaign.endsAt);
+  const postedAtMs = Date.parse(campaign.postedAt);
+  const runStartedAtMs = Date.parse(runStartedAt);
+  if ([nowMs, endsAtMs, postedAtMs, runStartedAtMs].some(Number.isNaN)) {
+    return false;
+  }
+
+  const remainingMs = endsAtMs - nowMs;
+  return (
+    remainingMs > 0 &&
+    remainingMs <= ENDING_REMINDER_WINDOW_MS &&
+    postedAtMs < runStartedAtMs
+  );
+}
+
 export function reconcilePromotions(
   state: RadarState,
   promotions: Promotion[],

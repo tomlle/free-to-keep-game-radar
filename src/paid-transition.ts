@@ -1,6 +1,6 @@
 import { load } from "cheerio";
 import { fetchWithRetry } from "./http.js";
-import type { ReportError } from "./types.js";
+import type { RelativeFreePeriod, ReportError } from "./types.js";
 
 interface AppDetails {
   type?: string;
@@ -24,6 +24,7 @@ export interface PaidTransition {
   announcementUrl: string;
   announcedAt: string;
   notBeforeAt?: string;
+  relativeFreePeriod?: RelativeFreePeriod;
 }
 
 export interface PaidTransitionScan {
@@ -81,6 +82,90 @@ const MONTHS = [
   "december",
 ];
 
+const ENGLISH_NUMBER_WORDS: Record<string, number> = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  eleven: 11,
+  twelve: 12,
+  thirteen: 13,
+  fourteen: 14,
+  fifteen: 15,
+  sixteen: 16,
+  seventeen: 17,
+  eighteen: 18,
+  nineteen: 19,
+  twenty: 20,
+  thirty: 30,
+  forty: 40,
+  fifty: 50,
+  sixty: 60,
+  seventy: 70,
+  eighty: 80,
+  ninety: 90,
+};
+
+function parsePeriodAmount(value: string): number | undefined {
+  const normalized = value.normalize("NFKC").toLowerCase();
+  if (/^\d{1,3}$/u.test(normalized)) {
+    const amount = Number.parseInt(normalized, 10);
+    return amount > 0 && amount <= 365 ? amount : undefined;
+  }
+  const parts = normalized.split("-");
+  const values = parts.map((part) => ENGLISH_NUMBER_WORDS[part]);
+  if (values.some((part) => part === undefined)) return undefined;
+  const amount = values.reduce<number>((sum, part) => sum + part!, 0);
+  return amount > 0 && amount <= 365 ? amount : undefined;
+}
+
+export function extractRelativeFreePeriod(
+  text: string,
+): RelativeFreePeriod | undefined {
+  const normalized = text.replace(/<[^>]+>/gu, " ").replace(/\s+/gu, " ");
+  const english = normalized.match(
+    /(?:free(?:\s+to\s+(?:claim|play|keep))?|available\s+for\s+free)[^.]{0,80}?\b(?:for|during)\s+(?:the\s+)?(?:first\s+)?(\d{1,3}|[a-z]+(?:-[a-z]+)?)\s+(day|week|month)s?\s+(?:after|from|following)\s+(?:the\s+)?(release|launch|announcement)/iu,
+  );
+  if (english) {
+    const amount = parsePeriodAmount(english[1]!);
+    if (amount) {
+      return {
+        amount,
+        unit: english[2]!.toLowerCase() as RelativeFreePeriod["unit"],
+        anchor:
+          english[3]!.toLowerCase() === "announcement"
+            ? "announcement"
+            : "release",
+      };
+    }
+  }
+
+  const japanese = normalized
+    .normalize("NFKC")
+    .match(
+      /(リリース|発売|公開|告知)(?:後|から)(?:最初の)?\s*(\d{1,3})\s*(日|週間?|か月|ヶ月|ヵ月|カ月|月)間?(?:は|まで)?(?:無料|フリー)/u,
+    );
+  if (!japanese) return undefined;
+  const amount = parsePeriodAmount(japanese[2]!);
+  if (!amount) return undefined;
+  const unitText = japanese[3]!;
+  return {
+    amount,
+    unit: unitText.startsWith("日")
+      ? "day"
+      : unitText.startsWith("週")
+        ? "week"
+        : "month",
+    anchor: japanese[1] === "告知" ? "announcement" : "release",
+  };
+}
+
 export interface NewsSearchResult {
   announcementId: string;
   url: string;
@@ -120,6 +205,8 @@ export function classifyPaidTransition(
     announcementUrl: item.url,
     announcedAt: announcedAt.toISOString(),
   };
+  const relativeFreePeriod = extractRelativeFreePeriod(text);
+  if (relativeFreePeriod) transition.relativeFreePeriod = relativeFreePeriod;
   if (/no sooner than (?:one|1) week/iu.test(text)) {
     transition.notBeforeAt = new Date(
       announcedAt.getTime() + 7 * 24 * 60 * 60 * 1_000,

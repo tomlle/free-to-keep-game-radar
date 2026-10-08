@@ -44,6 +44,25 @@ describe("paid-transition reports", () => {
     assert.match(markdown, /有料化最短日: 2026\/10\/13/u);
   });
 
+  it("renders a relative free period without converting it to a date", () => {
+    const markdown = renderPaidTransitionMarkdown({
+      ...report,
+      transitions: [
+        {
+          ...report.transitions[0]!,
+          relativeFreePeriod: {
+            amount: 30,
+            unit: "day",
+            anchor: "release",
+          },
+        },
+      ],
+    });
+
+    assert.match(markdown, /無料期間: リリース後30日間/u);
+    assert.doesNotMatch(markdown, /有料化最短日/u);
+  });
+
   it("persists only reports with posting attempts or errors", () => {
     assert.equal(shouldPersistPaidTransitionReport(report), false);
     assert.equal(

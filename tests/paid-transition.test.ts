@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   classifyPaidTransition,
+  extractRelativeFreePeriod,
   parseNewsSearchResults,
   reconcilePaidTransitionEvent,
 } from "../src/paid-transition.js";
@@ -77,6 +78,24 @@ describe("paid-transition detector", () => {
     );
 
     assert.equal(result?.productId, "5257350");
+    assert.deepEqual(result?.relativeFreePeriod, {
+      amount: 30,
+      unit: "day",
+      anchor: "release",
+    });
+  });
+
+  it("extracts Japanese and word-based relative free periods", () => {
+    assert.deepEqual(
+      extractRelativeFreePeriod("リリースから最初の30日間は無料です。"),
+      { amount: 30, unit: "day", anchor: "release" },
+    );
+    assert.deepEqual(
+      extractRelativeFreePeriod(
+        "The game is free to keep for the first two weeks after launch.",
+      ),
+      { amount: 2, unit: "week", anchor: "release" },
+    );
   });
 
   it("extracts an announced date and rejects uncertain plans", () => {
