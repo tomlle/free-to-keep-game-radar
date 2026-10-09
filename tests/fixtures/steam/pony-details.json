@@ -1,0 +1,71 @@
+{
+  "405640": {
+    "success": true,
+    "data": {
+      "type": "game",
+      "name": "Pony Island",
+      "is_free": true,
+      "price_overview": {
+        "currency": "JPY",
+        "initial": 58000,
+        "final": 58000,
+        "discount_percent": 100,
+        "initial_formatted": "¥ 580",
+        "final_formatted": "無料"
+      },
+      "package_groups": [
+        {
+          "name": "default",
+          "title": "Pony Islandを購入する",
+          "description": "",
+          "selection_text": "支払いオプションを選択",
+          "save_text": "",
+          "display_type": 0,
+          "is_recurring_subscription": "false",
+          "subs": [
+            {
+              "packageid": 1857153,
+              "percent_savings_text": "-100% ",
+              "percent_savings": 0,
+              "option_text": "Pony Island Limited Free Promotional Package - Oct 2026 - <span class=\"discount_original_price\">¥ 0</span> 無料",
+              "option_description": "",
+              "can_get_free_license": "0",
+              "is_free_license": true,
+              "price_in_cents_with_discount": 0
+            },
+            {
+              "packageid": 79724,
+              "percent_savings_text": " ",
+              "percent_savings": 0,
+              "option_text": "Pony Island - ¥ 580",
+              "option_description": "",
+              "can_get_free_license": "0",
+              "is_free_license": false,
+              "price_in_cents_with_discount": 58000
+            },
+            {
+              "packageid": 1156648,
+              "percent_savings_text": " ",
+              "percent_savings": 0,
+              "option_text": "Pony Island - Commercial License - ¥ 580",
+              "option_description": "",
+              "can_get_free_license": "0",
+              "is_free_license": false,
+              "price_in_cents_with_discount": 58000
+            },
+            {
+              "packageid": 90016,
+              "percent_savings_text": " ",
+              "percent_savings": 0,
+              "option_text": "Pony Island + Soundtrack - ¥ 700",
+              "option_description": "",
+              "can_get_free_license": "0",
+              "is_free_license": false,
+              "price_in_cents_with_discount": 70000
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

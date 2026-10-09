@@ -24,6 +24,13 @@ interface SteamAppDetails {
   name?: string;
   is_free?: boolean;
   header_image?: string;
+  package_groups?: {
+    subs?: {
+      packageid?: number;
+      is_free_license?: boolean;
+      price_in_cents_with_discount?: number;
+    }[];
+  }[];
   price_overview?: {
     currency?: string;
     initial?: number;
@@ -35,6 +42,11 @@ interface SteamAppDetails {
 interface SteamAppDetailsEnvelope {
   success?: boolean;
   data?: SteamAppDetails;
+}
+
+interface SteamFeaturedCategory {
+  id?: string;
+  items?: { id?: number; type?: number; name?: string; url?: string }[];
 }
 
 interface SteamStoreBrowseItem {
@@ -61,7 +73,8 @@ export interface SteamScanResult {
   emptyResultValidated: boolean;
 }
 
-const FREE_TEXT = /(?:^|\s)(?:free|無料)(?:\s|$)|(?:¥|￥)?\s*0(?:円)?/iu;
+const FREE_TEXT =
+  /^(?:free|無料|(?:(?:¥|￥|\$|€|£)\s*)?0(?:[.,]0+)?(?:\s*(?:円|USD|JPY|EUR))?)$/iu;
 
 function normalizeStoreUrl(href: string, appId: string): string {
   try {
@@ -129,6 +142,81 @@ export function parseSteamSearchHtml(
   return candidates;
 }
 
+// Featured spotlights include free weekends even when the purchase price is paid.
+// Inspect all featured apps; localized marketing labels are not proof of free play.
+export function parseSteamFeaturedCategories(
+  payload: Record<string, SteamFeaturedCategory>,
+): SteamSearchCandidate[] {
+  if (
+    !Object.values(payload).some(
+      (category) =>
+        category?.id === "cat_spotlight" || category?.id === "cat_specials",
+    )
+  ) {
+    throw new Error(
+      "Steam featured categories response is missing promotion categories",
+    );
+  }
+  const candidates = new Map<string, SteamSearchCandidate>();
+  for (const category of Object.values(payload)) {
+    if (
+      !["cat_spotlight", "cat_specials", "cat_dailydeal"].includes(
+        category?.id ?? "",
+      )
+    )
+      continue;
+    for (const item of category.items ?? []) {
+      const linkedId = item.url?.match(
+        /^https:\/\/store\.steampowered\.com\/app\/(\d+)(?:\/|$|\?)/u,
+      )?.[1];
+      const appId =
+        linkedId ?? (item.type === 0 && item.id ? String(item.id) : undefined);
+      if (!appId || !/^\d+$/u.test(appId)) continue;
+      candidates.set(appId, {
+        kind: "temporary_play",
+        appId,
+        title: item.name ?? `Steam App ${appId}`,
+        storeUrl: `https://store.steampowered.com/app/${appId}/`,
+        initialPriceText: "",
+        finalPriceText: "",
+        discountPercent: 0,
+      });
+    }
+  }
+  return [...candidates.values()];
+}
+
+function hasFreeToKeepPackage(details: SteamAppDetails, html: string): boolean {
+  const $ = load(html);
+  return (details.package_groups ?? []).some((group) =>
+    (group.subs ?? []).some((sub) => {
+      if (
+        !sub.packageid ||
+        sub.is_free_license !== true ||
+        sub.price_in_cents_with_discount !== 0
+      )
+        return false;
+      return $(".game_area_purchase_game")
+        .toArray()
+        .some((element) => {
+          const section = $(element);
+          const matchingLicense = section
+            .find(
+              'form[action*="/freelicense/addfreelicense/"] input[name="subid"]',
+            )
+            .toArray()
+            .some((input) => $(input).attr("value") === String(sub.packageid));
+          return (
+            matchingLicense &&
+            /keep (?:it )?forever|今後も無料でキープ/iu.test(
+              section.find("p.game_purchase_discount_quantity").text(),
+            )
+          );
+        });
+    }),
+  );
+}
+
 export function validateSteamSearchResponse(
   payload: SteamSearchResponse,
   requireRows = false,
@@ -150,11 +238,11 @@ export function validateSteamAppDetails(
   fallbackTitle: string,
   storeUrl: string,
   kind: PromotionKind = "free_to_keep",
+  storeHtml = "",
 ): Promotion | undefined {
   const price = details.price_overview;
   if (
     details.type !== "game" ||
-    details.is_free === true ||
     !price ||
     price.initial === undefined ||
     price.final === undefined ||
@@ -163,13 +251,19 @@ export function validateSteamAppDetails(
     return undefined;
   }
 
-  if (
-    kind === "free_to_keep" &&
-    (price.final !== 0 || price.discount_percent !== 100)
-  ) {
-    return undefined;
+  if (kind === "free_to_keep") {
+    const discountedToZero =
+      details.is_free !== true &&
+      price.final === 0 &&
+      price.discount_percent === 100;
+    if (!discountedToZero && !hasFreeToKeepPackage(details, storeHtml))
+      return undefined;
   }
-  if (kind === "temporary_play" && price.final <= 0) return undefined;
+  if (
+    kind === "temporary_play" &&
+    (details.is_free === true || price.final <= 0)
+  )
+    return undefined;
 
   const promotion: Promotion = {
     kind,
@@ -179,7 +273,8 @@ export function validateSteamAppDetails(
     storeUrl,
     initialPrice: price.initial,
     currency: price.currency ?? "JPY",
-    discountPercent: price.discount_percent ?? 0,
+    discountPercent:
+      kind === "free_to_keep" ? 100 : (price.discount_percent ?? 0),
   };
   if (details.header_image) promotion.imageUrl = details.header_image;
   return promotion;
@@ -201,6 +296,7 @@ export function extractPromotionEnd(html: string): string | undefined {
 
 export function validateTemporaryPlayStoreItem(
   item: SteamStoreBrowseItem | undefined,
+  nowMs = Date.now(),
 ): { startsAt?: string; endsAt?: string } | undefined {
   if (!item || (item.is_free_temporarily !== true && !item.free_weekend)) {
     return undefined;
@@ -209,6 +305,14 @@ export function validateTemporaryPlayStoreItem(
   const period: { startsAt?: string; endsAt?: string } = {};
   const startTime = item.free_weekend?.start_time;
   const endTime = item.free_weekend?.end_time;
+  const now = nowMs / 1_000;
+  if (
+    (startTime !== undefined && startTime > now) ||
+    (endTime !== undefined && endTime <= now)
+  )
+    return undefined;
+  if (item.free_weekend && (!startTime || !endTime || endTime <= startTime))
+    return undefined;
   if (startTime) {
     const start = new Date(startTime * 1_000);
     if (!Number.isNaN(start.getTime())) period.startsAt = start.toISOString();
@@ -305,6 +409,22 @@ export class SteamProvider {
       emptyResultValidated = true;
     }
 
+    const featuredUrl = new URL(
+      "https://store.steampowered.com/api/featuredcategories",
+    );
+    featuredUrl.search = new URLSearchParams({
+      cc: this.country.toLowerCase(),
+      l: this.language,
+    }).toString();
+    const featuredResponse = await fetchWithRetry(featuredUrl.toString());
+    const featuredCandidates = parseSteamFeaturedCategories(
+      (await featuredResponse.json()) as Record<string, SteamFeaturedCategory>,
+    );
+    for (const candidate of featuredCandidates) {
+      if (!allRows.has(`free_to_keep:${candidate.appId}`))
+        allRows.set(`temporary_play:${candidate.appId}`, candidate);
+    }
+
     const promotions: Promotion[] = [];
     let excluded = 0;
 
@@ -324,6 +444,26 @@ export class SteamProvider {
           SteamAppDetailsEnvelope
         >;
         const envelope = payload[candidate.appId];
+        if (!envelope?.success || !envelope.data) {
+          throw new Error(
+            "Steam app details did not return a successful response",
+          );
+        }
+        let storeHtml = "";
+        if (candidate.kind === "free_to_keep") {
+          const pageUrl = new URL(candidate.storeUrl);
+          pageUrl.search = new URLSearchParams({
+            cc: this.country.toLowerCase(),
+            l: this.language,
+          }).toString();
+          const pageResponse = await fetchWithRetry(pageUrl.toString(), {
+            headers: {
+              Cookie:
+                "birthtime=0; lastagecheckage=1-January-1970; wants_mature_content=1",
+            },
+          });
+          storeHtml = await pageResponse.text();
+        }
         const promotion =
           envelope?.success && envelope.data
             ? validateSteamAppDetails(
@@ -332,6 +472,7 @@ export class SteamProvider {
                 candidate.title,
                 candidate.storeUrl,
                 candidate.kind,
+                storeHtml,
               )
             : undefined;
 
@@ -372,24 +513,9 @@ export class SteamProvider {
           if (temporaryPlay.endsAt) promotion.endsAt = temporaryPlay.endsAt;
         }
 
-        try {
-          const pageUrl = new URL(candidate.storeUrl);
-          pageUrl.searchParams.set("cc", this.country.toLowerCase());
-          pageUrl.searchParams.set("l", this.language);
-          const pageResponse = await fetchWithRetry(pageUrl.toString(), {
-            headers: {
-              Cookie:
-                "birthtime=0; lastagecheckage=1-January-1970; wants_mature_content=1",
-            },
-          });
-          if (candidate.kind === "free_to_keep") {
-            const endsAt = extractPromotionEnd(await pageResponse.text());
-            if (endsAt) promotion.endsAt = endsAt;
-          }
-        } catch (error) {
-          errors.push(
-            toReportError(error, "steam_enrichment", candidate.appId),
-          );
+        if (candidate.kind === "free_to_keep") {
+          const endsAt = extractPromotionEnd(storeHtml);
+          if (endsAt) promotion.endsAt = endsAt;
         }
 
         promotions.push(promotion);
@@ -399,7 +525,9 @@ export class SteamProvider {
     }
 
     return {
-      searched: total === Number.POSITIVE_INFINITY ? 0 : total,
+      searched:
+        (total === Number.POSITIVE_INFINITY ? 0 : total) +
+        featuredCandidates.length,
       candidates: allRows.size,
       promotions,
       excluded,

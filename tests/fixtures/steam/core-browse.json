@@ -1,0 +1,70 @@
+{
+  "response": {
+    "store_items": [
+      {
+        "item_type": 0,
+        "id": 1621690,
+        "success": 1,
+        "visible": true,
+        "name": "Core Keeper",
+        "store_url_path": "app/1621690/Core_Keeper",
+        "store_url_slug": "Core_Keeper",
+        "appid": 1621690,
+        "type": 0,
+        "categories": {
+          "supported_player_categoryids": [2, 1, 9, 38],
+          "feature_categoryids": [23, 62],
+          "controller_categoryids": [28]
+        },
+        "basic_info": {
+          "short_description": "1から8人のプレイヤー対応の採掘サンドボックスアドベンチャーで、クリーチャーやレリック、資源が潜む無限の洞窟を探索しよう。採掘、建設、バトル、クラフト、そして農業し、古代のコアの謎を解き明かせ。",
+          "publishers": [
+            {
+              "name": "Fireshine Games",
+              "creator_clan_account_id": 36975412
+            },
+            {
+              "name": "bilibili"
+            }
+          ],
+          "developers": [
+            {
+              "name": "Pugstorm"
+            }
+          ],
+          "franchises": [
+            {
+              "name": "bilibili"
+            }
+          ]
+        },
+        "best_purchase_option": {
+          "packageid": 575770,
+          "purchase_option_name": "Core Keeper",
+          "final_price_in_cents": "138000",
+          "original_price_in_cents": "230000",
+          "formatted_final_price": "¥1,380",
+          "formatted_original_price": "¥2,300",
+          "discount_pct": 40,
+          "active_discounts": [
+            {
+              "discount_amount": "92000",
+              "discount_description": "#discount_desc_preset_weekend",
+              "discount_end_date": 1792688400
+            }
+          ],
+          "user_can_purchase_as_gift": true,
+          "hide_discount_pct_for_compliance": false,
+          "included_game_count": 1,
+          "must_purchase_as_set": false,
+          "package_group": "default",
+          "price_cannot_be_displayed_as_discount": false
+        },
+        "free_weekend": {
+          "start_time": 1791478800,
+          "end_time": 1791824400
+        }
+      }
+    ]
+  }
+}

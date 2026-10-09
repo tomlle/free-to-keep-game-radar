@@ -1,0 +1,284 @@
+{
+  "0": {
+    "id": "cat_spotlight",
+    "name": "Spotlights",
+    "items": [
+      {
+        "name": "ウィークエンド無料プレイ！",
+        "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/spotlights/174519d1acb65eae05e2f808/73e9ece7e1ef7306ad27a208810e393c7ca3c623/vertical_capsule_english.png?t=1790875240",
+        "body": "%1$s に終了します。",
+        "url": "https://store.steampowered.com/app/1808500"
+      }
+    ]
+  },
+  "1": {
+    "id": "cat_spotlight",
+    "name": "Spotlights",
+    "items": [
+      {
+        "name": "WEEKEND DEAL",
+        "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/spotlights/87d9a199c620c80804f57029/282256772191753f77143d68111cb63dc66de803/vertical_capsule_english.png?t=1790701917",
+        "body": "WEEKEND DEAL",
+        "url": "https://store.steampowered.com/app/2138710"
+      }
+    ]
+  },
+  "2": {
+    "id": "cat_spotlight",
+    "name": "Spotlights",
+    "items": [
+      {
+        "name": "WEEKEND DEAL",
+        "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/spotlights/765c5885aa6345c710439471/6e75b571105e65af6a35aff9842902d36b7d02b0/vertical_capsule_japanese.jpg?t=1791234400",
+        "body": "%1$s に終了します。",
+        "url": "https://store.steampowered.com/sale/MachineGamesDevSale"
+      }
+    ]
+  },
+  "3": {
+    "id": "cat_spotlight",
+    "name": "Spotlights",
+    "items": [
+      {
+        "name": "ウィークエンド無料プレイ！",
+        "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/spotlights/075e62689debb7eb3f0724e6/beefa4fcb21ce29ba09796e663569821859f07d4/vertical_capsule_english.png?t=1790795571",
+        "body": "%1$s に終了します。",
+        "url": "https://store.steampowered.com/app/1621690"
+      }
+    ]
+  },
+  "4": {
+    "id": "cat_spotlight",
+    "name": "Spotlights",
+    "items": [
+      {
+        "name": "シリーズセール",
+        "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/spotlights/11d8d1fd61f44266f9240564/6b0e4c9a3da967405fb676d0d448c34d9423c169/vertical_capsule_japanese.jpg?t=1790694663",
+        "body": "WEEKEND DEAL",
+        "url": "https://store.steampowered.com/sale/TwoPointFranchiseSale2026"
+      }
+    ]
+  },
+  "5": {
+    "id": "cat_spotlight",
+    "name": "Spotlights",
+    "items": [
+      {
+        "name": "WEEKEND DEAL",
+        "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/spotlights/b46ef0a6ea5e317092be259f/95671242bbb94f202f8faf54171b1f9b06790b7c/vertical_capsule_english.png?t=1789678694",
+        "body": "%1$s に終了します。",
+        "url": "https://store.steampowered.com/app/305620"
+      }
+    ]
+  },
+  "6": {
+    "id": "cat_dailydeal",
+    "name": "Daily Deal",
+    "items": [
+      {
+        "id": 834910,
+        "type": 0,
+        "discounted": true,
+        "currency": "JPY",
+        "original_price": 309000,
+        "final_price": 101900,
+        "discount_percent": 67,
+        "name": "ATLAS",
+        "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/834910/header.jpg?t=1694646023",
+        "purchase_package": 258994
+      }
+    ]
+  },
+  "specials": {
+    "id": "cat_specials",
+    "name": "スペシャル",
+    "items": [
+      {
+        "id": 814380,
+        "type": 0,
+        "name": "Sekiro™: Shadows Die Twice - GOTY Edition",
+        "discounted": true,
+        "discount_percent": 50,
+        "original_price": 836000,
+        "final_price": 418000,
+        "currency": "JPY",
+        "large_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/814380/capsule_616x353.jpg?t=1762888662",
+        "small_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/814380/capsule_184x69.jpg?t=1762888662",
+        "windows_available": true,
+        "mac_available": false,
+        "linux_available": false,
+        "streamingvideo_available": false,
+        "discount_expiration": 1792083600,
+        "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/814380/header.jpg?t=1762888662",
+        "controller_support": "full"
+      },
+      {
+        "id": 1478500,
+        "type": 0,
+        "name": "Big Walk",
+        "discounted": true,
+        "discount_percent": 20,
+        "original_price": 230000,
+        "final_price": 184000,
+        "currency": "JPY",
+        "large_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1478500/fdcb59d7679058d65e9d5200ef696ffa6070c9a2/capsule_616x353.jpg?t=1785911674",
+        "small_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1478500/44da9fb07ebe477387355d7fce29560b55125cce/capsule_184x69.jpg?t=1785911674",
+        "windows_available": true,
+        "mac_available": true,
+        "linux_available": false,
+        "streamingvideo_available": false,
+        "discount_expiration": 1792083600,
+        "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1478500/62eeee1507dbac905e128a62f2ce690550238db0/header.jpg?t=1785911674",
+        "controller_support": "full"
+      },
+      {
+        "id": 1364780,
+        "type": 0,
+        "name": "Street Fighter 6",
+        "discounted": true,
+        "discount_percent": 60,
+        "original_price": 499000,
+        "final_price": 199600,
+        "currency": "JPY",
+        "large_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1364780/d341042063cf09b36dba5c8070b18638d3a12fdb/capsule_616x353_alt_assets_20.jpg?t=1789611360",
+        "small_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1364780/3f34c45db4411c3cdbaa95d7bbd296454ad6300a/capsule_184x69_alt_assets_20.jpg?t=1789611360",
+        "windows_available": true,
+        "mac_available": false,
+        "linux_available": false,
+        "streamingvideo_available": false,
+        "discount_expiration": 1792602000,
+        "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1364780/header.jpg?t=1789611360"
+      },
+      {
+        "id": 1808500,
+        "type": 0,
+        "name": "ARC Raiders",
+        "discounted": true,
+        "discount_percent": 50,
+        "original_price": 639000,
+        "final_price": 319500,
+        "currency": "JPY",
+        "large_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1808500/0a1858e0ad97504cbaa70a931d870756de63c34c/capsule_616x353_alt_assets_8.jpg?t=1791401542",
+        "small_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1808500/542a243d39bd7ed791359be9e96c82f419b81475/capsule_184x69.jpg?t=1791401542",
+        "windows_available": true,
+        "mac_available": false,
+        "linux_available": false,
+        "streamingvideo_available": false,
+        "discount_expiration": 1792083600,
+        "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1808500/29e8af9fbf06833558758f94cfb406746f338c45/header_alt_assets_8.jpg?t=1791401542",
+        "controller_support": "full"
+      },
+      {
+        "id": 1623730,
+        "type": 0,
+        "name": "Palworld / パルワールド",
+        "discounted": true,
+        "discount_percent": 30,
+        "original_price": 340000,
+        "final_price": 238000,
+        "currency": "JPY",
+        "large_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1623730/57df7aed61d65c9012a11d58e812aff275b7daed/capsule_616x353.jpg?t=1790336367",
+        "small_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1623730/0703d5a0658c7aedaa3be4391d6f5cccc1bb6d7a/capsule_184x69.jpg?t=1790336367",
+        "windows_available": true,
+        "mac_available": false,
+        "linux_available": false,
+        "streamingvideo_available": false,
+        "discount_expiration": 1792688400,
+        "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1623730/6912f19c43a95ff5fe514eedd35e68bf12335459/header.jpg?t=1790336367",
+        "controller_support": "full"
+      },
+      {
+        "id": 3883570,
+        "type": 0,
+        "name": "インボキア-呪いのダイスゲーム-",
+        "discounted": true,
+        "discount_percent": 25,
+        "original_price": 120000,
+        "final_price": 90000,
+        "currency": "JPY",
+        "large_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3883570/b7e5b5d4d8021bdecc6e55291c0a1334fdd74815/capsule_616x353_japanese.jpg?t=1791485649",
+        "small_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3883570/91d5e903bee960c574cf8ff991abe8d44db62b29/capsule_184x69_japanese.jpg?t=1791485649",
+        "windows_available": true,
+        "mac_available": false,
+        "linux_available": false,
+        "streamingvideo_available": false,
+        "discount_expiration": 1792688422,
+        "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3883570/77442fe87da250d359fd54d1e76465bf80632da8/header_japanese.jpg?t=1791485649"
+      },
+      {
+        "id": 3240220,
+        "type": 0,
+        "name": "グランド・セフト・オートV エンハンスト",
+        "discounted": true,
+        "discount_percent": 56,
+        "original_price": 648000,
+        "final_price": 285100,
+        "currency": "JPY",
+        "large_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3240220/7a6c02b4c33ca267912cb67dfb105534c358233f/capsule_616x353_japanese.jpg?t=1781187782",
+        "small_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3240220/a318bd9affe8eee32984b18794b273c256e9b2d6/capsule_184x69.jpg?t=1781187782",
+        "windows_available": true,
+        "mac_available": false,
+        "linux_available": false,
+        "streamingvideo_available": false,
+        "discount_expiration": 1792688400,
+        "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3240220/header_japanese.jpg?t=1781187782"
+      },
+      {
+        "id": 1621690,
+        "type": 0,
+        "name": "Core Keeper",
+        "discounted": true,
+        "discount_percent": 40,
+        "original_price": 230000,
+        "final_price": 138000,
+        "currency": "JPY",
+        "large_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1621690/395bfdc1017f69dfe248c9ee6635af44f838b5d2/capsule_616x353_alt_assets_12.jpg?t=1791454740",
+        "small_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1621690/74ae27901ff218090ff1b122b7c71489df920994/capsule_184x69_alt_assets_12.jpg?t=1791454740",
+        "windows_available": true,
+        "mac_available": false,
+        "linux_available": true,
+        "streamingvideo_available": false,
+        "discount_expiration": 1792688400,
+        "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1621690/4d3798fbb307f52d9e11ed5b5f665779097b2f55/header_alt_assets_12.jpg?t=1791454740",
+        "controller_support": "full"
+      },
+      {
+        "id": 2333000,
+        "type": 0,
+        "name": "Silver Pines",
+        "discounted": true,
+        "discount_percent": 10,
+        "original_price": 250000,
+        "final_price": 225000,
+        "currency": "JPY",
+        "large_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2333000/54a0117dda5fac439f661805447788724ceb535e/capsule_616x353.jpg?t=1791483390",
+        "small_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2333000/1d876833b58e192d06e6067a84da77c2768c30e4/capsule_184x69.jpg?t=1791483390",
+        "windows_available": true,
+        "mac_available": false,
+        "linux_available": false,
+        "streamingvideo_available": false,
+        "discount_expiration": 1792688400,
+        "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2333000/2ce661be5b6e60b8fcc92ecdf3f9dc2dca2a9037/header.jpg?t=1791483390",
+        "controller_support": "full"
+      },
+      {
+        "id": 1174180,
+        "type": 0,
+        "name": "Red Dead Redemption 2",
+        "discounted": true,
+        "discount_percent": 75,
+        "original_price": 861800,
+        "final_price": 215400,
+        "currency": "JPY",
+        "large_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1174180/capsule_616x353.jpg?t=1759502961",
+        "small_capsule_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1174180/capsule_184x69.jpg?t=1759502961",
+        "windows_available": true,
+        "mac_available": false,
+        "linux_available": false,
+        "streamingvideo_available": false,
+        "discount_expiration": 1792688400,
+        "header_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1174180/header.jpg?t=1759502961"
+      }
+    ]
+  }
+}
