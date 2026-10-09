@@ -1,4 +1,4 @@
-# free-to-keep-game-radar
+# morotoko
 
 日本向けゲームストアの無料キャンペーンを見つけてXへ投稿するBotです。無料で入手して終了後も遊べる配布と、期間中だけ遊べる一時プレイ無料を区別して告知します。
 
@@ -14,7 +14,7 @@ cron-job.orgからGitHub Actionsを定期起動し、検出、投稿、状態更
 
 ```mermaid
 flowchart TD
-    Cron["cron-job.org<br/>毎日 02:15・03:15・09:15・17:15 JST"]
+    Cron["cron-job.org<br/>毎日 02:00・10:00・15:00・21:00 JST"]
     Manual["GitHub Actions画面<br/>手動実行"]
     API["GitHub REST API<br/>workflow_dispatch"]
 
@@ -166,7 +166,7 @@ Steam公式ニュースを有料化に関する複数の表現で検索し、見
 
 ## 処理の流れ
 
-cron-job.orgから毎日00:15・08:15・17:15・18:15（UTC）にGitHub Actionsを起動し、次の順番で実行します。日本時間では09:15・17:15・翌02:15・翌03:15です。17:15・18:15（UTC）の2回は、Steamの標準更新時刻である10:00（America/Los_Angeles）の夏時間と冬時間をそれぞれカバーします。
+cron-job.orgから毎日01:00・06:00・12:00・17:00（UTC）にGitHub Actionsを起動し、次の順番で実行します。日本時間では10:00・15:00・21:00・翌02:00です。
 
 1. Steam Storeから100%割引候補と一時プレイ無料候補を取得
 2. 商品詳細を使ってそれぞれの条件を再検証
