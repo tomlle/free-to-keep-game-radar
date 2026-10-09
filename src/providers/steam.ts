@@ -213,7 +213,7 @@ function freeToKeepPackageId(
           );
         if (
           matchingLicense &&
-          /keep (?:it )?forever|今後も無料でキープ/iu.test(
+          /keep (?:it )?forever|free to keep when you get it before|今後も無料でキープ/iu.test(
             section.find("p.game_purchase_discount_quantity").text(),
           )
         )
@@ -307,6 +307,7 @@ export function validateSteamAppDetails(
 export function extractPromotionEnd(
   html: string,
   packageIds: readonly string[],
+  options: { textDatesInUtc?: boolean; now?: Date } = {},
 ): string | undefined {
   const $ = load(html);
   const deadlines = new Set<string>();
@@ -335,6 +336,50 @@ export function extractPromotionEnd(
         const date = new Date(Number(value) * 1000);
         if (!Number.isNaN(date.getTime())) deadlines.add(date.toISOString());
       });
+    if (options.textDatesInUtc) {
+      section.find(".game_purchase_discount_quantity").each((_, node) => {
+        if ($(node).closest(".game_area_purchase_game")[0] !== element) return;
+        const text = $(node).text().replace(/\s+/gu, " ").trim();
+        const match = text.match(
+          /^Free to keep when you get it before (\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) @ (\d{1,2}):(\d{2})(am|pm)\./iu,
+        );
+        if (!match) return;
+        const month = [
+          "jan",
+          "feb",
+          "mar",
+          "apr",
+          "may",
+          "jun",
+          "jul",
+          "aug",
+          "sep",
+          "oct",
+          "nov",
+          "dec",
+        ].indexOf(match[2]!.toLowerCase());
+        const day = Number(match[1]);
+        const hour = Number(match[3]);
+        const minute = Number(match[4]);
+        if (day < 1 || hour < 1 || hour > 12 || minute > 59) return;
+        const utcHour =
+          (hour % 12) + (match[5]!.toLowerCase() === "pm" ? 12 : 0);
+        const now = options.now ?? new Date();
+        // Steam omits the year. Only accept a nearby, unique calendar date,
+        // including offers crossing New Year; never roll invalid dates forward.
+        for (const year of [
+          now.getUTCFullYear() - 1,
+          now.getUTCFullYear(),
+          now.getUTCFullYear() + 1,
+        ]) {
+          const date = new Date(Date.UTC(year, month, day, utcHour, minute));
+          if (date.getUTCMonth() !== month || date.getUTCDate() !== day)
+            continue;
+          if (Math.abs(date.getTime() - now.getTime()) <= 31 * 86_400_000)
+            deadlines.add(date.toISOString());
+        }
+      });
+    }
   });
   // Multiple purchase offers can expire on different dates. Do not guess.
   return deadlines.size === 1 ? [...deadlines][0] : undefined;
@@ -528,12 +573,12 @@ export class SteamProvider {
             const pageUrl = new URL(candidate.storeUrl);
             pageUrl.search = new URLSearchParams({
               cc: this.country.toLowerCase(),
-              l: this.language,
+              l: "english",
             }).toString();
             const pageResponse = await fetchWithRetry(pageUrl.toString(), {
               headers: {
                 Cookie:
-                  "birthtime=0; lastagecheckage=1-January-1970; wants_mature_content=1",
+                  "birthtime=0; lastagecheckage=1-January-1970; wants_mature_content=1; timezoneOffset=0,0",
               },
             });
             storeHtml = await pageResponse.text();
@@ -602,7 +647,9 @@ export class SteamProvider {
                   .filter((sub) => sub.price_in_cents_with_discount === 0)
                   .map((sub) => String(sub.packageid)),
               );
-          const endsAt = extractPromotionEnd(storeHtml, packageIds);
+          const endsAt = extractPromotionEnd(storeHtml, packageIds, {
+            textDatesInUtc: true,
+          });
           if (endsAt) promotion.endsAt = endsAt;
         }
 
