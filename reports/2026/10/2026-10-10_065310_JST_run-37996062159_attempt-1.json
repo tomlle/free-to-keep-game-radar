@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "run": {
+    "runId": "37996062159",
+    "attempt": 1,
+    "event": "workflow_dispatch",
+    "startedAt": "2026-10-09T21:53:10.108Z",
+    "finishedAt": "2026-10-09T21:53:17.741Z",
+    "timezone": "Asia/Tokyo",
+    "status": "success",
+    "actionsUrl": "https://github.com/tomlle/morotoko/actions/runs/37996062159"
+  },
+  "detection": {
+    "searched": 16,
+    "candidates": 16,
+    "verified": 4,
+    "newPromotions": 1,
+    "knownPromotions": 3,
+    "excluded": 12,
+    "sourceHealthy": true,
+    "emptyResultValidated": false
+  },
+  "posting": {
+    "succeeded": 1,
+    "failed": 0,
+    "skipped": 0
+  },
+  "activePromotions": [
+    {
+      "kind": "free_to_keep",
+      "store": "steam",
+      "productId": "405640",
+      "title": "Pony Island",
+      "storeUrl": "https://store.steampowered.com/app/405640/",
+      "initialPrice": 58000,
+      "currency": "JPY",
+      "discountPercent": 100,
+      "packageId": "1857153",
+      "imageUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/405640/header.jpg?t=1791477267"
+    },
+    {
+      "kind": "free_to_keep",
+      "store": "steam",
+      "productId": "2990600",
+      "title": "Fireside Feelings",
+      "storeUrl": "https://store.steampowered.com/app/2990600/",
+      "initialPrice": 92000,
+      "currency": "JPY",
+      "discountPercent": 100,
+      "packageId": "1825454",
+      "imageUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2990600/89d745fd5604055c7b68b44ed28eba5b7df89d58/header.jpg?t=1789504567"
+    },
+    {
+      "kind": "temporary_play",
+      "store": "steam",
+      "productId": "1808500",
+      "title": "ARC Raiders",
+      "storeUrl": "https://store.steampowered.com/app/1808500/",
+      "initialPrice": 639000,
+      "currency": "JPY",
+      "discountPercent": 50,
+      "imageUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1808500/29e8af9fbf06833558758f94cfb406746f338c45/header_alt_assets_8.jpg?t=1791401542",
+      "startsAt": "2026-10-08T08:00:00.000Z",
+      "endsAt": "2026-10-12T08:00:00.000Z"
+    },
+    {
+      "kind": "temporary_play",
+      "store": "steam",
+      "productId": "1621690",
+      "title": "Core Keeper",
+      "storeUrl": "https://store.steampowered.com/app/1621690/",
+      "initialPrice": 230000,
+      "currency": "JPY",
+      "discountPercent": 40,
+      "imageUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1621690/4d3798fbb307f52d9e11ed5b5f665779097b2f55/header_alt_assets_12.jpg?t=1791454740",
+      "startsAt": "2026-10-08T17:00:00.000Z",
+      "endsAt": "2026-10-12T17:00:00.000Z"
+    }
+  ],
+  "posts": [
+    {
+      "type": "campaign",
+      "campaignId": "steam:2990600:1",
+      "productId": "2990600",
+      "title": "Fireside Feelings",
+      "status": "sent",
+      "bufferPostId": "6ac9624cbba9419ccbe0a492"
+    }
+  ],
+  "errors": []
+}

@@ -12,6 +12,10 @@
     "steam:1621690:temporary_play": {
       "generation": 1,
       "activeCampaignId": "steam:1621690:temporary_play:1"
+    },
+    "steam:2990600": {
+      "generation": 1,
+      "activeCampaignId": "steam:2990600:1"
     }
   },
   "campaigns": {
@@ -27,7 +31,7 @@
       "currency": "JPY",
       "discountPercent": 100,
       "firstSeenAt": "2026-10-09T02:39:41.685Z",
-      "lastSeenAt": "2026-10-09T12:15:39.516Z",
+      "lastSeenAt": "2026-10-09T21:53:16.044Z",
       "active": true,
       "consecutiveMisses": 0,
       "postStatus": "sent",
@@ -56,7 +60,7 @@
       "currency": "JPY",
       "discountPercent": 50,
       "firstSeenAt": "2026-10-09T02:39:41.685Z",
-      "lastSeenAt": "2026-10-09T12:15:39.516Z",
+      "lastSeenAt": "2026-10-09T21:53:16.044Z",
       "active": true,
       "consecutiveMisses": 0,
       "postStatus": "sent",
@@ -87,7 +91,7 @@
       "currency": "JPY",
       "discountPercent": 40,
       "firstSeenAt": "2026-10-09T02:39:41.685Z",
-      "lastSeenAt": "2026-10-09T12:15:39.516Z",
+      "lastSeenAt": "2026-10-09T21:53:16.044Z",
       "active": true,
       "consecutiveMisses": 0,
       "postStatus": "sent",
@@ -105,6 +109,35 @@
       },
       "bufferPostId": "6ac853f09db755aaaac05555",
       "postedAt": "2026-10-09T02:39:45.789Z"
+    },
+    "steam:2990600:1": {
+      "kind": "free_to_keep",
+      "id": "steam:2990600:1",
+      "store": "steam",
+      "productId": "2990600",
+      "generation": 1,
+      "title": "Fireside Feelings",
+      "storeUrl": "https://store.steampowered.com/app/2990600/",
+      "initialPrice": 92000,
+      "currency": "JPY",
+      "discountPercent": 100,
+      "firstSeenAt": "2026-10-09T21:53:16.044Z",
+      "lastSeenAt": "2026-10-09T21:53:16.044Z",
+      "active": true,
+      "consecutiveMisses": 0,
+      "postStatus": "sent",
+      "postAttempts": 1,
+      "delivery": {
+        "status": "sent",
+        "firstSeenAt": "2026-10-09T21:53:16.044Z",
+        "postText": "無料配布🎁\n\n『Fireside Feelings』\n￥920 → 無料（100% OFF）\n\nhttps://store.steampowered.com/app/2990600/\n\n#ゲーム無料配布 #Steam #もろとこ",
+        "attemptedAt": "2026-10-09T21:53:16.470Z",
+        "bufferPostId": "6ac9624cbba9419ccbe0a492",
+        "submittedAt": "2026-10-09T21:53:17.739Z",
+        "postedAt": "2026-10-09T21:53:17.739Z"
+      },
+      "bufferPostId": "6ac9624cbba9419ccbe0a492",
+      "postedAt": "2026-10-09T21:53:17.739Z"
     }
   }
 }
