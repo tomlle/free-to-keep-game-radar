@@ -409,20 +409,30 @@ export class SteamProvider {
       emptyResultValidated = true;
     }
 
-    const featuredUrl = new URL(
-      "https://store.steampowered.com/api/featuredcategories",
-    );
-    featuredUrl.search = new URLSearchParams({
-      cc: this.country.toLowerCase(),
-      l: this.language,
-    }).toString();
-    const featuredResponse = await fetchWithRetry(featuredUrl.toString());
-    const featuredCandidates = parseSteamFeaturedCategories(
-      (await featuredResponse.json()) as Record<string, SteamFeaturedCategory>,
-    );
-    for (const candidate of featuredCandidates) {
-      if (!allRows.has(`free_to_keep:${candidate.appId}`))
-        allRows.set(`temporary_play:${candidate.appId}`, candidate);
+    let featuredCandidates: SteamSearchCandidate[] = [];
+    try {
+      const featuredUrl = new URL(
+        "https://store.steampowered.com/api/featuredcategories",
+      );
+      featuredUrl.search = new URLSearchParams({
+        cc: this.country.toLowerCase(),
+        l: this.language,
+      }).toString();
+      const featuredResponse = await fetchWithRetry(featuredUrl.toString());
+      featuredCandidates = parseSteamFeaturedCategories(
+        (await featuredResponse.json()) as Record<
+          string,
+          SteamFeaturedCategory
+        >,
+      );
+      for (const candidate of featuredCandidates) {
+        if (!allRows.has(`free_to_keep:${candidate.appId}`))
+          allRows.set(`temporary_play:${candidate.appId}`, candidate);
+      }
+    } catch (error) {
+      // Preserve verified search candidates; the error also prevents missing
+      // campaigns from being expired by main.ts during this incomplete scan.
+      errors.push(toReportError(error, "steam_search"));
     }
 
     const promotions: Promotion[] = [];
@@ -449,32 +459,47 @@ export class SteamProvider {
             "Steam app details did not return a successful response",
           );
         }
+        let promotion = validateSteamAppDetails(
+          candidate.appId,
+          envelope.data,
+          candidate.title,
+          candidate.storeUrl,
+          candidate.kind,
+        );
         let storeHtml = "";
         if (candidate.kind === "free_to_keep") {
-          const pageUrl = new URL(candidate.storeUrl);
-          pageUrl.search = new URLSearchParams({
-            cc: this.country.toLowerCase(),
-            l: this.language,
-          }).toString();
-          const pageResponse = await fetchWithRetry(pageUrl.toString(), {
-            headers: {
-              Cookie:
-                "birthtime=0; lastagecheckage=1-January-1970; wants_mature_content=1",
-            },
-          });
-          storeHtml = await pageResponse.text();
+          try {
+            const pageUrl = new URL(candidate.storeUrl);
+            pageUrl.search = new URLSearchParams({
+              cc: this.country.toLowerCase(),
+              l: this.language,
+            }).toString();
+            const pageResponse = await fetchWithRetry(pageUrl.toString(), {
+              headers: {
+                Cookie:
+                  "birthtime=0; lastagecheckage=1-January-1970; wants_mature_content=1",
+              },
+            });
+            storeHtml = await pageResponse.text();
+          } catch (error) {
+            // A conventional 100% discount is already verified by appdetails.
+            // A separate license still needs the page's permanent-retention proof.
+            if (!promotion) throw error;
+            errors.push(
+              toReportError(error, "steam_enrichment", candidate.appId),
+            );
+          }
+          if (!promotion) {
+            promotion = validateSteamAppDetails(
+              candidate.appId,
+              envelope.data,
+              candidate.title,
+              candidate.storeUrl,
+              candidate.kind,
+              storeHtml,
+            );
+          }
         }
-        const promotion =
-          envelope?.success && envelope.data
-            ? validateSteamAppDetails(
-                candidate.appId,
-                envelope.data,
-                candidate.title,
-                candidate.storeUrl,
-                candidate.kind,
-                storeHtml,
-              )
-            : undefined;
 
         if (!promotion) {
           excluded += 1;
@@ -532,7 +557,7 @@ export class SteamProvider {
       promotions,
       excluded,
       errors,
-      sourceHealthy: true,
+      sourceHealthy: !errors.some((error) => error.severity === "error"),
       emptyResultValidated,
     };
   }
