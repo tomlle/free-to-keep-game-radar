@@ -1,8 +1,14 @@
 import { resolve } from "node:path";
 import { loadConfig } from "./config.js";
+import {
+  campaignDelivery,
+  deliverPost,
+  syncCampaignDelivery,
+} from "./delivery.js";
 import { HttpError } from "./http.js";
 import {
   buildEndingReminderPostText,
+  buildPostText,
   BufferPublisher,
 } from "./publishers/buffer.js";
 import { SteamProvider } from "./providers/steam.js";
@@ -122,11 +128,12 @@ async function run(): Promise<number> {
     );
     const pending = Object.values(state.campaigns).filter(
       (campaign) =>
-        campaign.active &&
-        campaign.postStatus === "pending" &&
-        activePromotionKeys.has(
-          `${campaign.kind ?? "free_to_keep"}:${campaign.productId}`,
-        ),
+        ["submitted", "uncertain", "failed"].includes(campaign.postStatus) ||
+        (campaign.active &&
+          campaign.postStatus === "pending" &&
+          activePromotionKeys.has(
+            `${campaign.kind ?? "free_to_keep"}:${campaign.productId}`,
+          )),
     );
 
     for (const campaign of pending) {
@@ -147,31 +154,20 @@ async function run(): Promise<number> {
 
       campaign.postAttempts += 1;
       try {
-        const existing = await publisher.findRecentPostContaining(
-          campaign.storeUrl,
+        const delivery = campaignDelivery(campaign);
+        const status = await deliverPost(
+          publisher,
+          delivery,
+          buildPostText(campaign),
+          async () => {
+            syncCampaignDelivery(campaign);
+            await saveState(STATE_PATH, state);
+          },
         );
-        if (existing) {
-          campaign.postStatus = "sent";
-          campaign.bufferPostId = existing.id;
-          campaign.postedAt =
-            existing.sentAt ?? existing.createdAt ?? new Date().toISOString();
-          delete campaign.lastPostError;
-          result.status = "sent";
-          result.reason = "Recovered from Buffer sent-post history";
-          result.bufferPostId = existing.id;
-          report.posting.succeeded += 1;
-          report.posts.push(result);
-          continue;
-        }
-
-        const posted = await publisher.publish(campaign);
-        campaign.postStatus = "sent";
-        campaign.bufferPostId = posted.id;
-        campaign.postedAt = new Date().toISOString();
-        delete campaign.lastPostError;
-        result.status = "sent";
-        result.bufferPostId = posted.id;
-        report.posting.succeeded += 1;
+        result.status = status === "sent" ? "sent" : "submitted";
+        if (delivery.bufferPostId) result.bufferPostId = delivery.bufferPostId;
+        if (status === "sent") report.posting.succeeded += 1;
+        else report.posting.submitted = (report.posting.submitted ?? 0) + 1;
       } catch (error) {
         const message = sanitizeError(error);
         campaign.lastPostError = message;
@@ -194,9 +190,14 @@ async function run(): Promise<number> {
     const reminderNow = new Date().toISOString();
     const endingSoon = Object.values(state.campaigns).filter(
       (campaign) =>
-        activePromotionKeys.has(
+        (activePromotionKeys.has(
           `${campaign.kind ?? "free_to_keep"}:${campaign.productId}`,
-        ) && shouldSendEndingReminder(campaign, reminderNow, startedAt),
+        ) &&
+          shouldSendEndingReminder(campaign, reminderNow, startedAt)) ||
+        (campaign.endingReminderDelivery &&
+          ["submitted", "uncertain", "failed"].includes(
+            campaign.endingReminderDelivery.status,
+          )),
     );
 
     for (const campaign of endingSoon) {
@@ -219,18 +220,27 @@ async function run(): Promise<number> {
         (campaign.endingReminderAttempts ?? 0) + 1;
       try {
         const text = buildEndingReminderPostText(campaign);
-        const existing = await publisher.findRecentPostContaining(text);
-        const posted = existing ?? (await publisher.publishText(text));
-        campaign.endingReminderBufferPostId = posted.id;
-        campaign.endingReminderPostedAt =
-          existing?.sentAt ?? existing?.createdAt ?? new Date().toISOString();
+        const delivery = (campaign.endingReminderDelivery ??= {
+          status: "pending",
+          firstSeenAt: reminderNow,
+        });
+        const status = await deliverPost(
+          publisher,
+          delivery,
+          text,
+          async () => {
+            if (delivery.bufferPostId)
+              campaign.endingReminderBufferPostId = delivery.bufferPostId;
+            if (delivery.postedAt)
+              campaign.endingReminderPostedAt = delivery.postedAt;
+            await saveState(STATE_PATH, state);
+          },
+        );
         delete campaign.lastEndingReminderError;
-        result.status = "sent";
-        result.reason = existing
-          ? "Recovered from Buffer sent-post history"
-          : "Ending reminder sent";
-        result.bufferPostId = posted.id;
-        report.posting.succeeded += 1;
+        result.status = status === "sent" ? "sent" : "submitted";
+        if (delivery.bufferPostId) result.bufferPostId = delivery.bufferPostId;
+        if (status === "sent") report.posting.succeeded += 1;
+        else report.posting.submitted = (report.posting.submitted ?? 0) + 1;
       } catch (error) {
         const message = sanitizeError(error);
         campaign.lastEndingReminderError = message;

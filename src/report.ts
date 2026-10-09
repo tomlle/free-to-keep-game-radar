@@ -79,6 +79,7 @@ export function renderMarkdown(report: RunReport): string {
     "## 投稿結果",
     "",
     `- 投稿成功: ${report.posting.succeeded}`,
+    `- 受付済み・送信確認待ち: ${report.posting.submitted ?? 0}`,
     `- 投稿失敗: ${report.posting.failed}`,
     `- 投稿スキップ: ${report.posting.skipped}`,
   );

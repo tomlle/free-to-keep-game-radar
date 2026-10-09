@@ -15,6 +15,7 @@ export interface PaidTransitionReport {
     detectedProducts: number;
   };
   posting: {
+    submitted?: number;
     succeeded: number;
     failed: number;
     skipped: number;
@@ -62,6 +63,7 @@ export function renderPaidTransitionMarkdown(
     `- 候補ゲーム数: ${report.detection.candidates}`,
     `- 検出ゲーム数: ${report.detection.detectedProducts}`,
     `- 投稿成功: ${report.posting.succeeded}`,
+    `- 受付済み・送信確認待ち: ${report.posting.submitted ?? 0}`,
     `- 投稿失敗: ${report.posting.failed}`,
     `- 投稿スキップ: ${report.posting.skipped}`,
     "",

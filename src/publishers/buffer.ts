@@ -255,9 +255,11 @@ export class BufferPublisher {
     return this.publishText(buildPostText(campaign));
   }
 
-  async findRecentPostContaining(
-    textFragment: string,
-  ): Promise<RecentBufferPost | undefined> {
+  async findPost(input: {
+    id?: string;
+    text: string;
+    notBeforeAt: string;
+  }): Promise<RecentBufferPost | undefined> {
     const channelData = await this.request<{
       channel?: { organizationId?: string };
     }>(
@@ -281,7 +283,7 @@ export class BufferPublisher {
       };
     }>(
       `
-        query RecentSentPosts(
+        query RecentPosts(
           $organizationId: OrganizationId!
           $channelId: ChannelId!
         ) {
@@ -290,7 +292,7 @@ export class BufferPublisher {
             input: {
               organizationId: $organizationId
               sort: [{ field: createdAt, direction: desc }]
-              filter: { status: [sent], channelIds: [$channelId] }
+              filter: { channelIds: [$channelId] }
             }
           ) {
             edges { node { id status text createdAt sentAt channelId } }
@@ -302,7 +304,17 @@ export class BufferPublisher {
 
     return postsData.posts?.edges
       ?.map((edge) => edge.node)
-      .find((post) => post?.text.includes(textFragment));
+      .find((post) => {
+        if (!post || post.channelId !== this.credentials.channelId)
+          return false;
+        if (input.id) return post.id === input.id;
+        const createdAt = Date.parse(post.createdAt ?? "");
+        return (
+          post.text === input.text &&
+          Number.isFinite(createdAt) &&
+          createdAt >= Date.parse(input.notBeforeAt)
+        );
+      });
   }
 
   async publishText(text: string): Promise<{ id: string; status: string }> {

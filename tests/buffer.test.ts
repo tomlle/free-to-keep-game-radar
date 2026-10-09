@@ -157,7 +157,7 @@ describe("Buffer publisher", () => {
     assert.equal(variables.input.mode, "shareNow");
   });
 
-  it("finds an already sent post by its store URL", async () => {
+  it("finds an already sent post by exact text within the current campaign", async () => {
     const requests: Array<Record<string, unknown>> = [];
     const responses = [
       { data: { channel: { organizationId: "organization-id" } } },
@@ -189,7 +189,10 @@ describe("Buffer publisher", () => {
     );
 
     assert.deepEqual(
-      await publisher.findRecentPostContaining(campaign.storeUrl),
+      await publisher.findPost({
+        text: `announcement\n${campaign.storeUrl}`,
+        notBeforeAt: "2026-10-06T00:00:00Z",
+      }),
       {
         id: "existing-post-id",
         status: "sent",

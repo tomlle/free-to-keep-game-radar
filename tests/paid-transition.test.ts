@@ -22,6 +22,7 @@ describe("paid-transition detector", () => {
       { ...base, announcementId: "news-1" },
       "2026-10-06T00:00:00.000Z",
     );
+    assert.ok(first);
     first.status = "sent";
     const followUp = reconcilePaidTransitionEvent(
       products,
@@ -29,6 +30,7 @@ describe("paid-transition detector", () => {
       "2026-10-07T00:00:00.000Z",
     );
 
+    assert.ok(followUp);
     assert.equal(followUp.id, "steam:2236920:paid-transition:1");
     assert.equal(followUp.status, "sent");
     assert.deepEqual(followUp.announcementIds, ["news-1", "news-2"]);

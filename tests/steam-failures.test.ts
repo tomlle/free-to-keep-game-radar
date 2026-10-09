@@ -12,6 +12,9 @@ const normalDetails = {
     success: true,
     data: {
       type: "game",
+      package_groups: [
+        { subs: [{ packageid: 100, price_in_cents_with_discount: 0 }] },
+      ],
       name: "Normal discount",
       is_free: false,
       price_overview: {
@@ -69,7 +72,7 @@ function mockSteam(
       return new Response(
         url.pathname === "/app/405640/"
           ? fixture("pony-license.html")
-          : '<div data-discount-expiration="1791417600"></div>',
+          : '<div class="game_area_purchase_game" id="game_area_purchase_section_add_to_cart_100" data-discount-expiration="1791417600"></div>',
       );
     }
     if (url.pathname === "/IStoreBrowseService/GetItems/v1/") {

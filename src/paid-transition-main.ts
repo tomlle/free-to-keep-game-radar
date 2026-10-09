@@ -1,5 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import { deliverPost } from "./delivery.js";
 import { loadConfig } from "./config.js";
 import {
   reconcilePaidTransitionEvent,
@@ -96,6 +97,14 @@ async function run(): Promise<number> {
     if (event?.active) {
       event.active = false;
       event.convertedAt = new Date().toISOString();
+      state.products[`steam:${productId}`]!.lastConvertedAt = event.convertedAt;
+      state.products[`steam:${productId}`]!.processedAnnouncementIds = [
+        ...new Set([
+          ...(state.products[`steam:${productId}`]!.processedAnnouncementIds ??
+            []),
+          ...event.announcementIds,
+        ]),
+      ];
     }
   }
 
@@ -105,43 +114,23 @@ async function run(): Promise<number> {
       transition,
       new Date().toISOString(),
     );
-    if (event.status === "sent") continue;
+    if (!event || event.status === "sent") continue;
     if (!config.postToX || !publisher) {
       posts.push({ id: event.id, title: transition.title, status: "skipped" });
       continue;
     }
     try {
-      const existing = await publisher.findRecentPostContaining(
-        transition.storeUrl,
-      );
-      if (existing) {
-        event.status = "sent";
-        event.postedAt =
-          existing.sentAt ?? existing.createdAt ?? new Date().toISOString();
-        event.bufferPostId = existing.id;
-        delete event.lastError;
-        posts.push({
-          id: event.id,
-          title: transition.title,
-          status: "sent",
-          reason: "Recovered from Buffer sent-post history",
-          bufferPostId: existing.id,
-        });
-        continue;
-      }
-
-      const posted = await publisher.publishText(
+      const status = await deliverPost(
+        publisher,
+        event,
         buildPaidTransitionPostText(transition),
+        () => saveState(state),
       );
-      event.status = "sent";
-      event.postedAt = new Date().toISOString();
-      event.bufferPostId = posted.id;
-      delete event.lastError;
       posts.push({
         id: event.id,
         title: transition.title,
-        status: "sent",
-        bufferPostId: posted.id,
+        status: status === "sent" ? "sent" : "submitted",
+        bufferPostId: event.bufferPostId!,
       });
     } catch (error) {
       event.lastError = error instanceof Error ? error.message : String(error);
@@ -154,6 +143,37 @@ async function run(): Promise<number> {
     }
   }
 
+  for (const event of Object.values(state.products).flatMap((product) => [
+    ...(product.previousEvents ?? []),
+    ...(product.event ? [product.event] : []),
+  ])) {
+    if (
+      !publisher ||
+      !event ||
+      !event.postText ||
+      !["submitted", "uncertain", "failed"].includes(event.status) ||
+      posts.some((post) => post.id === event.id)
+    )
+      continue;
+    try {
+      const status = await deliverPost(publisher, event, event.postText, () =>
+        saveState(state),
+      );
+      posts.push({
+        id: event.id,
+        title: event.id,
+        status: status === "sent" ? "sent" : "submitted",
+        bufferPostId: event.bufferPostId!,
+      });
+    } catch (error) {
+      posts.push({
+        id: event.id,
+        title: event.id,
+        status: "failed",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
   await saveState(state);
   const finishedAt = new Date();
   const report: PaidTransitionReport = {
@@ -171,6 +191,7 @@ async function run(): Promise<number> {
         .size,
     },
     posting: {
+      submitted: posts.filter((post) => post.status === "submitted").length,
       succeeded: posts.filter((post) => post.status === "sent").length,
       failed: posts.filter((post) => post.status === "failed").length,
       skipped: posts.filter((post) => post.status === "skipped").length,

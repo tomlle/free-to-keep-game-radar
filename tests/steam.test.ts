@@ -149,7 +149,10 @@ describe("Steam promotion parsing", () => {
 
   it("extracts an exposed promotion deadline", () => {
     assert.equal(
-      extractPromotionEnd('<div data-discount-expiration="1791417600">'),
+      extractPromotionEnd(
+        '<div class="game_area_purchase_game" id="game_area_purchase_section_add_to_cart_100" data-discount-expiration="1791417600">',
+        ["100"],
+      ),
       "2026-10-08T00:00:00.000Z",
     );
   });

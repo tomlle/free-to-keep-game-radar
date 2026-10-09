@@ -22,6 +22,17 @@ export interface Promotion {
   endsAt?: string;
 }
 
+export interface DeliveryState {
+  status: "pending" | "submitted" | "uncertain" | "sent" | "failed";
+  firstSeenAt: string;
+  postText?: string;
+  attemptedAt?: string;
+  submittedAt?: string;
+  bufferPostId?: string;
+  postedAt?: string;
+  lastError?: string;
+}
+
 export interface CampaignState {
   kind: PromotionKind;
   id: string;
@@ -39,7 +50,9 @@ export interface CampaignState {
   lastSeenAt: string;
   active: boolean;
   consecutiveMisses: number;
-  postStatus: "pending" | "sent" | "expired_without_post";
+  postStatus: DeliveryState["status"] | "expired_without_post";
+  delivery?: DeliveryState;
+  endingReminderDelivery?: DeliveryState;
   postAttempts: number;
   bufferPostId?: string;
   postedAt?: string;
@@ -81,7 +94,7 @@ export interface PostResult {
   campaignId: string;
   productId: string;
   title: string;
-  status: "sent" | "failed" | "skipped";
+  status: "sent" | "submitted" | "uncertain" | "failed" | "skipped";
   reason?: string;
   bufferPostId?: string;
   xPostUrl?: string;
@@ -110,6 +123,7 @@ export interface RunReport {
     emptyResultValidated: boolean;
   };
   posting: {
+    submitted?: number;
     succeeded: number;
     failed: number;
     skipped: number;

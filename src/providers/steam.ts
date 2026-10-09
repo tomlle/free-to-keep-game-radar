@@ -186,46 +186,65 @@ export function parseSteamFeaturedCategories(
   return [...candidates.values()];
 }
 
-function hasFreeToKeepPackage(details: SteamAppDetails, html: string): boolean {
+function freeToKeepPackageId(
+  details: SteamAppDetails,
+  html: string,
+): string | undefined {
   const $ = load(html);
-  return (details.package_groups ?? []).some((group) =>
-    (group.subs ?? []).some((sub) => {
+  for (const group of details.package_groups ?? []) {
+    for (const sub of group.subs ?? []) {
       if (
         !sub.packageid ||
         sub.is_free_license !== true ||
         sub.price_in_cents_with_discount !== 0
       )
-        return false;
-      return $(".game_area_purchase_game")
-        .toArray()
-        .some((element) => {
-          const section = $(element);
-          const matchingLicense = section
-            .find(
-              'form[action*="/freelicense/addfreelicense/"] input[name="subid"]',
-            )
-            .toArray()
-            .some((input) => $(input).attr("value") === String(sub.packageid));
-          return (
-            matchingLicense &&
-            /keep (?:it )?forever|今後も無料でキープ/iu.test(
-              section.find("p.game_purchase_discount_quantity").text(),
-            )
+        continue;
+      for (const element of $(".game_area_purchase_game").toArray()) {
+        const section = $(element);
+        const matchingLicense = section
+          .find(
+            'form[action*="/freelicense/addfreelicense/"] input[name="subid"]',
+          )
+          .toArray()
+          .some(
+            (input) =>
+              $(input).closest(".game_area_purchase_game")[0] === element &&
+              $(input).attr("value") === String(sub.packageid),
           );
-        });
-    }),
-  );
+        if (
+          matchingLicense &&
+          /keep (?:it )?forever|今後も無料でキープ/iu.test(
+            section.find("p.game_purchase_discount_quantity").text(),
+          )
+        )
+          return String(sub.packageid);
+      }
+    }
+  }
+  return undefined;
 }
 
 export function validateSteamSearchResponse(
   payload: SteamSearchResponse,
   requireRows = false,
 ): { total: number; html: string } {
-  const total = Number(payload.total_count ?? 0);
-  const html = payload.results_html ?? "";
   if (payload.success !== 1) {
     throw new Error("Steam search did not return a successful response");
   }
+  if (
+    typeof payload.total_count !== "number" ||
+    !Number.isSafeInteger(payload.total_count) ||
+    payload.total_count < 0 ||
+    typeof payload.results_html !== "string"
+  ) {
+    throw new Error(
+      "Steam search response is missing valid total_count or results_html",
+    );
+  }
+  const total = payload.total_count;
+  const html = payload.results_html;
+  if (total === 0 && html.includes("search_result_row"))
+    throw new Error("Steam search count disagrees with product rows");
   if (requireRows && (total <= 0 || !html.includes("search_result_row"))) {
     throw new Error("Steam search health probe returned no product rows");
   }
@@ -256,7 +275,7 @@ export function validateSteamAppDetails(
       details.is_free !== true &&
       price.final === 0 &&
       price.discount_percent === 100;
-    if (!discountedToZero && !hasFreeToKeepPackage(details, storeHtml))
+    if (!discountedToZero && !freeToKeepPackageId(details, storeHtml))
       return undefined;
   }
   if (
@@ -276,22 +295,49 @@ export function validateSteamAppDetails(
     discountPercent:
       kind === "free_to_keep" ? 100 : (price.discount_percent ?? 0),
   };
+  const packageId =
+    kind === "free_to_keep"
+      ? freeToKeepPackageId(details, storeHtml)
+      : undefined;
+  if (packageId) promotion.packageId = packageId;
   if (details.header_image) promotion.imageUrl = details.header_image;
   return promotion;
 }
 
-export function extractPromotionEnd(html: string): string | undefined {
-  const patterns = [
-    /data-discount-expiration=["'](\d{9,12})["']/iu,
-    /["']discount_expiration["']\s*:\s*(\d{9,12})/iu,
-  ];
-  for (const pattern of patterns) {
-    const timestamp = html.match(pattern)?.[1];
-    if (!timestamp) continue;
-    const date = new Date(Number.parseInt(timestamp, 10) * 1_000);
-    if (!Number.isNaN(date.getTime())) return date.toISOString();
-  }
-  return undefined;
+export function extractPromotionEnd(
+  html: string,
+  packageIds: readonly string[],
+): string | undefined {
+  const $ = load(html);
+  const deadlines = new Set<string>();
+  $(".game_area_purchase_game").each((_, element) => {
+    const section = $(element);
+    const matches = packageIds.some(
+      (id) =>
+        section.attr("id") === `game_area_purchase_section_add_to_cart_${id}` ||
+        section
+          .find('input[name="subid"]')
+          .toArray()
+          .some(
+            (input) =>
+              $(input).closest(".game_area_purchase_game")[0] === element &&
+              $(input).attr("value") === id,
+          ),
+    );
+    if (!matches) return;
+    section
+      .find("[data-discount-expiration]")
+      .addBack("[data-discount-expiration]")
+      .each((_, node) => {
+        if ($(node).closest(".game_area_purchase_game")[0] !== element) return;
+        const value = $(node).attr("data-discount-expiration") ?? "";
+        if (!/^\d{9,12}$/u.test(value)) return;
+        const date = new Date(Number(value) * 1000);
+        if (!Number.isNaN(date.getTime())) deadlines.add(date.toISOString());
+      });
+  });
+  // Multiple purchase offers can expire on different dates. Do not guess.
+  return deadlines.size === 1 ? [...deadlines][0] : undefined;
 }
 
 export function validateTemporaryPlayStoreItem(
@@ -378,9 +424,19 @@ export class SteamProvider {
       }
 
       total = validated.total;
-      if (!html.trim()) break;
+      if (!html.trim() && total > start)
+        throw new Error("Steam search ended before all rows were retrieved");
       start += pageSize;
     }
+
+    if (start < total)
+      errors.push({
+        stage: "steam_search",
+        severity: "error",
+        code: "STEAM_SEARCH_TRUNCATED",
+        message:
+          "Steam search exceeded the 1000-result scan limit; missing campaigns will not be expired",
+      });
 
     let emptyResultValidated = false;
     if (total === 0) {
@@ -539,7 +595,14 @@ export class SteamProvider {
         }
 
         if (candidate.kind === "free_to_keep") {
-          const endsAt = extractPromotionEnd(storeHtml);
+          const packageIds = promotion.packageId
+            ? [promotion.packageId]
+            : (envelope.data.package_groups ?? []).flatMap((group) =>
+                (group.subs ?? [])
+                  .filter((sub) => sub.price_in_cents_with_discount === 0)
+                  .map((sub) => String(sub.packageid)),
+              );
+          const endsAt = extractPromotionEnd(storeHtml, packageIds);
           if (endsAt) promotion.endsAt = endsAt;
         }
 
