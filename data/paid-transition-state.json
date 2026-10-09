@@ -13,7 +13,10 @@
         "firstSeenAt": "2026-10-06T14:09:38.193Z",
         "postedAt": "2026-10-06T14:19:30.227Z",
         "bufferPostId": "6ac503714f0da3b3682660b5"
-      }
+      },
+      "processedAnnouncementIds": [
+        "1845383656393924"
+      ]
     },
     "steam:3594170": {
       "generation": 1,
@@ -42,7 +45,10 @@
         "firstSeenAt": "2026-10-06T14:46:49.195Z",
         "postedAt": "2026-10-06T14:52:02.150Z",
         "bufferPostId": "6ac50b10ee4d28743ca26d8f"
-      }
+      },
+      "processedAnnouncementIds": [
+        "1844751498235227"
+      ]
     },
     "steam:5257350": {
       "generation": 1,
@@ -56,7 +62,10 @@
         "firstSeenAt": "2026-10-07T15:17:47.818Z",
         "postedAt": "2026-10-07T15:17:49.242Z",
         "bufferPostId": "6ac6629c75e2178a99496e97"
-      }
+      },
+      "processedAnnouncementIds": [
+        "1846018067925478"
+      ]
     }
   }
 }

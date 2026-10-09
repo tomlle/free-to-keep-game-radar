@@ -1,5 +1,110 @@
 {
   "schemaVersion": 1,
-  "products": {},
-  "campaigns": {}
+  "products": {
+    "steam:405640": {
+      "generation": 1,
+      "activeCampaignId": "steam:405640:1"
+    },
+    "steam:1808500:temporary_play": {
+      "generation": 1,
+      "activeCampaignId": "steam:1808500:temporary_play:1"
+    },
+    "steam:1621690:temporary_play": {
+      "generation": 1,
+      "activeCampaignId": "steam:1621690:temporary_play:1"
+    }
+  },
+  "campaigns": {
+    "steam:405640:1": {
+      "kind": "free_to_keep",
+      "id": "steam:405640:1",
+      "store": "steam",
+      "productId": "405640",
+      "generation": 1,
+      "title": "Pony Island",
+      "storeUrl": "https://store.steampowered.com/app/405640/",
+      "initialPrice": 58000,
+      "currency": "JPY",
+      "discountPercent": 100,
+      "firstSeenAt": "2026-10-09T02:39:41.685Z",
+      "lastSeenAt": "2026-10-09T02:39:41.685Z",
+      "active": true,
+      "consecutiveMisses": 0,
+      "postStatus": "sent",
+      "postAttempts": 1,
+      "delivery": {
+        "status": "sent",
+        "firstSeenAt": "2026-10-09T02:39:41.685Z",
+        "postText": "無料配布🎁\n\n『Pony Island』\n￥580 → 無料（100% OFF）\n\nhttps://store.steampowered.com/app/405640/\n\n#ゲーム無料配布 #Steam #もろとこ",
+        "attemptedAt": "2026-10-09T02:39:41.960Z",
+        "bufferPostId": "6ac853ee9db755aaaac054e1",
+        "submittedAt": "2026-10-09T02:39:43.165Z",
+        "postedAt": "2026-10-09T02:39:43.165Z"
+      },
+      "bufferPostId": "6ac853ee9db755aaaac054e1",
+      "postedAt": "2026-10-09T02:39:43.165Z"
+    },
+    "steam:1808500:temporary_play:1": {
+      "kind": "temporary_play",
+      "id": "steam:1808500:temporary_play:1",
+      "store": "steam",
+      "productId": "1808500",
+      "generation": 1,
+      "title": "ARC Raiders",
+      "storeUrl": "https://store.steampowered.com/app/1808500/",
+      "initialPrice": 639000,
+      "currency": "JPY",
+      "discountPercent": 50,
+      "firstSeenAt": "2026-10-09T02:39:41.685Z",
+      "lastSeenAt": "2026-10-09T02:39:41.685Z",
+      "active": true,
+      "consecutiveMisses": 0,
+      "postStatus": "sent",
+      "postAttempts": 1,
+      "startsAt": "2026-10-08T08:00:00.000Z",
+      "endsAt": "2026-10-12T08:00:00.000Z",
+      "delivery": {
+        "status": "sent",
+        "firstSeenAt": "2026-10-09T02:39:41.685Z",
+        "postText": "一時プレイ無料🎮\n\n『ARC Raiders』\n期間限定で無料プレイ\n⏰ 10/8 17:00〜10/12 17:00\n\n気になってたゲームを、この機会に遊んでみよう！\n\nhttps://store.steampowered.com/app/1808500/\n\n#ゲーム無料プレイ #Steam #もろとこ",
+        "attemptedAt": "2026-10-09T02:39:43.290Z",
+        "bufferPostId": "6ac853ef9db755aaaac0551b",
+        "submittedAt": "2026-10-09T02:39:44.470Z",
+        "postedAt": "2026-10-09T02:39:44.470Z"
+      },
+      "bufferPostId": "6ac853ef9db755aaaac0551b",
+      "postedAt": "2026-10-09T02:39:44.470Z"
+    },
+    "steam:1621690:temporary_play:1": {
+      "kind": "temporary_play",
+      "id": "steam:1621690:temporary_play:1",
+      "store": "steam",
+      "productId": "1621690",
+      "generation": 1,
+      "title": "Core Keeper",
+      "storeUrl": "https://store.steampowered.com/app/1621690/",
+      "initialPrice": 230000,
+      "currency": "JPY",
+      "discountPercent": 40,
+      "firstSeenAt": "2026-10-09T02:39:41.685Z",
+      "lastSeenAt": "2026-10-09T02:39:41.685Z",
+      "active": true,
+      "consecutiveMisses": 0,
+      "postStatus": "sent",
+      "postAttempts": 1,
+      "startsAt": "2026-10-08T17:00:00.000Z",
+      "endsAt": "2026-10-12T17:00:00.000Z",
+      "delivery": {
+        "status": "sent",
+        "firstSeenAt": "2026-10-09T02:39:41.685Z",
+        "postText": "一時プレイ無料🎮\n\n『Core Keeper』\n期間限定で無料プレイ\n⏰ 10/9 02:00〜10/13 02:00\n\n気になってたゲームを、この機会に遊んでみよう！\n\nhttps://store.steampowered.com/app/1621690/\n\n#ゲーム無料プレイ #Steam #もろとこ",
+        "attemptedAt": "2026-10-09T02:39:44.602Z",
+        "bufferPostId": "6ac853f09db755aaaac05555",
+        "submittedAt": "2026-10-09T02:39:45.789Z",
+        "postedAt": "2026-10-09T02:39:45.789Z"
+      },
+      "bufferPostId": "6ac853f09db755aaaac05555",
+      "postedAt": "2026-10-09T02:39:45.789Z"
+    }
+  }
 }

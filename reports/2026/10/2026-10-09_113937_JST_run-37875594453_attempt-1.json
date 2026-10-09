@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "run": {
+    "runId": "37875594453",
+    "attempt": 1,
+    "event": "workflow_dispatch",
+    "startedAt": "2026-10-09T02:39:37.354Z",
+    "finishedAt": "2026-10-09T02:39:45.790Z",
+    "timezone": "Asia/Tokyo",
+    "status": "success",
+    "actionsUrl": "https://github.com/tomlle/free-to-keep-game-radar/actions/runs/37875594453"
+  },
+  "detection": {
+    "searched": 14,
+    "candidates": 14,
+    "verified": 3,
+    "newPromotions": 3,
+    "knownPromotions": 0,
+    "excluded": 11,
+    "sourceHealthy": true,
+    "emptyResultValidated": false
+  },
+  "posting": {
+    "succeeded": 3,
+    "failed": 0,
+    "skipped": 0
+  },
+  "activePromotions": [
+    {
+      "kind": "free_to_keep",
+      "store": "steam",
+      "productId": "405640",
+      "title": "Pony Island",
+      "storeUrl": "https://store.steampowered.com/app/405640/",
+      "initialPrice": 58000,
+      "currency": "JPY",
+      "discountPercent": 100,
+      "packageId": "1857153",
+      "imageUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/405640/header.jpg?t=1791477267"
+    },
+    {
+      "kind": "temporary_play",
+      "store": "steam",
+      "productId": "1808500",
+      "title": "ARC Raiders",
+      "storeUrl": "https://store.steampowered.com/app/1808500/",
+      "initialPrice": 639000,
+      "currency": "JPY",
+      "discountPercent": 50,
+      "imageUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1808500/29e8af9fbf06833558758f94cfb406746f338c45/header_alt_assets_8.jpg?t=1791401542",
+      "startsAt": "2026-10-08T08:00:00.000Z",
+      "endsAt": "2026-10-12T08:00:00.000Z"
+    },
+    {
+      "kind": "temporary_play",
+      "store": "steam",
+      "productId": "1621690",
+      "title": "Core Keeper",
+      "storeUrl": "https://store.steampowered.com/app/1621690/",
+      "initialPrice": 230000,
+      "currency": "JPY",
+      "discountPercent": 40,
+      "imageUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1621690/4d3798fbb307f52d9e11ed5b5f665779097b2f55/header_alt_assets_12.jpg?t=1791454740",
+      "startsAt": "2026-10-08T17:00:00.000Z",
+      "endsAt": "2026-10-12T17:00:00.000Z"
+    }
+  ],
+  "posts": [
+    {
+      "type": "campaign",
+      "campaignId": "steam:405640:1",
+      "productId": "405640",
+      "title": "Pony Island",
+      "status": "sent",
+      "bufferPostId": "6ac853ee9db755aaaac054e1"
+    },
+    {
+      "type": "campaign",
+      "campaignId": "steam:1808500:temporary_play:1",
+      "productId": "1808500",
+      "title": "ARC Raiders",
+      "status": "sent",
+      "bufferPostId": "6ac853ef9db755aaaac0551b"
+    },
+    {
+      "type": "campaign",
+      "campaignId": "steam:1621690:temporary_play:1",
+      "productId": "1621690",
+      "title": "Core Keeper",
+      "status": "sent",
+      "bufferPostId": "6ac853f09db755aaaac05555"
+    }
+  ],
+  "errors": []
+}
