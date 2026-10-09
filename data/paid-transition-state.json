@@ -66,6 +66,26 @@
       "processedAnnouncementIds": [
         "1846018067925478"
       ]
+    },
+    "steam:3943750": {
+      "generation": 1,
+      "processedAnnouncementIds": [
+        "1846018067932002"
+      ],
+      "event": {
+        "id": "steam:3943750:paid-transition:1",
+        "status": "sent",
+        "active": true,
+        "announcementIds": [
+          "1846018067932002"
+        ],
+        "firstSeenAt": "2026-10-09T06:15:54.147Z",
+        "postText": "もうすぐ有料⚠️\n\n『Fly Over! 100KM! Mountains!』\n現在無料 → 近日中に有料化予定\n\nhttps://store.steampowered.com/app/3943750/\n\n#ゲーム無料配布 #Steam #もろとこ",
+        "attemptedAt": "2026-10-09T06:15:54.544Z",
+        "bufferPostId": "6ac8869a04f06b2e8f7ea7e7",
+        "submittedAt": "2026-10-09T06:15:55.928Z",
+        "postedAt": "2026-10-09T06:15:55.928Z"
+      }
     }
   }
 }
