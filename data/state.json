@@ -31,7 +31,7 @@
       "currency": "JPY",
       "discountPercent": 100,
       "firstSeenAt": "2026-10-09T02:39:41.685Z",
-      "lastSeenAt": "2026-10-09T21:53:16.044Z",
+      "lastSeenAt": "2026-10-10T05:14:15.744Z",
       "active": true,
       "consecutiveMisses": 0,
       "postStatus": "sent",
@@ -46,7 +46,8 @@
         "postedAt": "2026-10-09T02:39:43.165Z"
       },
       "bufferPostId": "6ac853ee9db755aaaac054e1",
-      "postedAt": "2026-10-09T02:39:43.165Z"
+      "postedAt": "2026-10-09T02:39:43.165Z",
+      "endsAt": "2026-10-12T17:00:00.000Z"
     },
     "steam:1808500:temporary_play:1": {
       "kind": "temporary_play",
@@ -60,7 +61,7 @@
       "currency": "JPY",
       "discountPercent": 50,
       "firstSeenAt": "2026-10-09T02:39:41.685Z",
-      "lastSeenAt": "2026-10-09T21:53:16.044Z",
+      "lastSeenAt": "2026-10-10T05:14:15.744Z",
       "active": true,
       "consecutiveMisses": 0,
       "postStatus": "sent",
@@ -91,7 +92,7 @@
       "currency": "JPY",
       "discountPercent": 40,
       "firstSeenAt": "2026-10-09T02:39:41.685Z",
-      "lastSeenAt": "2026-10-09T21:53:16.044Z",
+      "lastSeenAt": "2026-10-10T05:14:15.744Z",
       "active": true,
       "consecutiveMisses": 0,
       "postStatus": "sent",
@@ -122,7 +123,7 @@
       "currency": "JPY",
       "discountPercent": 100,
       "firstSeenAt": "2026-10-09T21:53:16.044Z",
-      "lastSeenAt": "2026-10-09T21:53:16.044Z",
+      "lastSeenAt": "2026-10-10T05:14:15.744Z",
       "active": true,
       "consecutiveMisses": 0,
       "postStatus": "sent",
@@ -137,7 +138,8 @@
         "postedAt": "2026-10-09T21:53:17.739Z"
       },
       "bufferPostId": "6ac9624cbba9419ccbe0a492",
-      "postedAt": "2026-10-09T21:53:17.739Z"
+      "postedAt": "2026-10-09T21:53:17.739Z",
+      "endsAt": "2026-10-12T17:00:00.000Z"
     }
   }
 }
