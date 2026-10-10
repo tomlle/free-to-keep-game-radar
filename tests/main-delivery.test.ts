@@ -14,9 +14,8 @@ import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
 const runner = fileURLToPath(new URL("./helpers/run-main.ts", import.meta.url));
-const loader = fileURLToPath(
-  new URL("../node_modules/tsx/dist/loader.mjs", import.meta.url),
-);
+const loader = new URL("../node_modules/tsx/dist/loader.mjs", import.meta.url)
+  .href;
 const json = async (path: string) => JSON.parse(await readFile(path, "utf8"));
 const execute = (root: string, mode: string, paid = false) =>
   spawnSync(process.execPath, ["--import", loader, runner], {

@@ -30,8 +30,9 @@ const campaign: CampaignState = {
 };
 
 describe("Buffer publisher", () => {
-  it("builds an upcoming-paid post with hashtags at the end", () => {
+  it("builds an upcoming-paid post without hashtags", () => {
     const text = buildPaidTransitionPostText({
+      productId: "2236920",
       title: "Eco inc. Save the Earth",
       storeUrl: "https://store.steampowered.com/app/2236920/",
       notBeforeAt: "2026-10-12T16:02:16.000Z",
@@ -45,8 +46,6 @@ describe("Buffer publisher", () => {
         "現在無料 → 10月13日以降に有料化予定",
         "",
         "https://store.steampowered.com/app/2236920/",
-        "",
-        "#ゲーム無料配布 #Steam #もろとこ",
       ].join("\n"),
     );
     assert.ok(xWeightedLength(text) <= 280);
@@ -54,6 +53,7 @@ describe("Buffer publisher", () => {
 
   it("prefers a relative free period in an upcoming-paid post", () => {
     const text = buildPaidTransitionPostText({
+      productId: "5257350",
       title: "Hex Reverse",
       storeUrl: "https://store.steampowered.com/app/5257350/",
       relativeFreePeriod: {
@@ -76,19 +76,39 @@ describe("Buffer publisher", () => {
     assert.match(text, /⏰ 10\/8 09:00まで/u);
     assert.doesNotMatch(text, /JST/u);
     assert.doesNotMatch(text, /もらえるもんは/u);
-    assert.match(text, /#ゲーム無料配布 #Steam #もろとこ/u);
+    assert.doesNotMatch(text, /#/u);
     assert.doesNotMatch(text, /Epic Gamesなど/u);
     assert.match(text, /https:\/\/store\.steampowered\.com\/app\/100\//u);
+    assert.doesNotMatch(text, /#/u);
     assert.ok(xWeightedLength(text) <= 280);
   });
 
   it("builds a one-time ending reminder", () => {
-    const text = buildEndingReminderPostText(campaign);
+    const text = buildEndingReminderPostText({
+      ...campaign,
+      officialDescription: "短い公式日本語説明です。",
+    });
 
     assert.match(text, /まもなく終了⏰/u);
     assert.match(text, /無料配布は 10\/8 09:00まで/u);
     assert.match(text, /ライブラリへの追加忘れに注意！/u);
+    assert.match(text, /短い公式日本語説明です。/u);
     assert.match(text, /https:\/\/store\.steampowered\.com\/app\/100\//u);
+    assert.ok(xWeightedLength(text) <= 280);
+  });
+
+  it("includes a game description in an upcoming-paid post", () => {
+    const text = buildPaidTransitionPostText({
+      productId: "2990600",
+      title: "Fireside Feelings",
+      storeUrl: "https://store.steampowered.com/app/2990600/",
+      officialDescription: "English-only official description.",
+      tags: ["心温まる", "会話重視", "インディー"],
+    });
+
+    assert.match(text, /焚き火を囲み/u);
+    assert.doesNotMatch(text, /English-only/u);
+    assert.doesNotMatch(text, /#/u);
     assert.ok(xWeightedLength(text) <= 280);
   });
 
@@ -107,7 +127,7 @@ describe("Buffer publisher", () => {
     assert.doesNotMatch(text, /JST/u);
     assert.ok(text.indexOf("⏰") < text.indexOf("気になってたゲームを"));
     assert.match(text, /⏰ 10\/5 09:00〜10\/8 09:00\n\n気になってたゲームを/u);
-    assert.match(text, /#ゲーム無料プレイ #Steam #もろとこ/u);
+    assert.doesNotMatch(text, /#/u);
     assert.doesNotMatch(text, /無料配布🎁|100% OFF/u);
     assert.ok(xWeightedLength(text) <= 280);
   });
@@ -122,6 +142,21 @@ describe("Buffer publisher", () => {
     assert.match(text, /…』/u);
     assert.doesNotMatch(text, /\u200d…/u);
     assert.match(text, /https:\/\/store\.steampowered\.com\/app\/100\//u);
+  });
+
+  it("includes and safely truncates a Japanese game description", () => {
+    const text = buildPostText({
+      ...campaign,
+      officialDescription:
+        "焚き火を囲みながら、自分の思いを分かち合う穏やかなゲームです。".repeat(
+          20,
+        ),
+    });
+
+    assert.match(text, /焚き火を囲みながら/u);
+    assert.match(text, /…\n\nhttps:\/\//u);
+    assert.doesNotMatch(text, /#/u);
+    assert.ok(xWeightedLength(text) <= 280);
   });
 
   it("publishes immediately to the configured Buffer channel", async () => {

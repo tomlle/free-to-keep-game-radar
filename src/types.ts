@@ -13,6 +13,8 @@ export interface Promotion {
   productId: string;
   packageId?: string;
   title: string;
+  officialDescription?: string;
+  tags?: string[];
   storeUrl: string;
   imageUrl?: string;
   initialPrice: number;
@@ -40,6 +42,8 @@ export interface CampaignState {
   productId: string;
   generation: number;
   title: string;
+  officialDescription?: string;
+  tags?: string[];
   storeUrl: string;
   initialPrice: number;
   currency: string;

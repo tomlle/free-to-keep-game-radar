@@ -8,6 +8,8 @@ const promotion: Promotion = {
   store: "steam",
   productId: "100",
   title: "Test Game",
+  officialDescription: "An English description.",
+  tags: ["インディー"],
   storeUrl: "https://store.steampowered.com/app/100/",
   initialPrice: 120000,
   currency: "JPY",
@@ -35,6 +37,11 @@ describe("campaign reconciliation", () => {
     assert.equal(first.newCampaigns.length, 1);
     assert.equal(second.newCampaigns.length, 0);
     assert.equal(second.knownPromotions, 1);
+    assert.equal(
+      current.campaigns["steam:100:1"]?.officialDescription,
+      "An English description.",
+    );
+    assert.deepEqual(current.campaigns["steam:100:1"]?.tags, ["インディー"]);
   });
 
   it("ends after two misses and creates a new generation if it returns", () => {

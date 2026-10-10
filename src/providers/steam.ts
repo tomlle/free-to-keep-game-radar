@@ -24,6 +24,7 @@ interface SteamAppDetails {
   name?: string;
   is_free?: boolean;
   header_image?: string;
+  short_description?: string;
   package_groups?: {
     subs?: {
       packageid?: number;
@@ -301,7 +302,26 @@ export function validateSteamAppDetails(
       : undefined;
   if (packageId) promotion.packageId = packageId;
   if (details.header_image) promotion.imageUrl = details.header_image;
+  const officialDescription = details.short_description
+    ? load(`<body>${details.short_description}</body>`)("body")
+        .text()
+        .replace(/\s+/gu, " ")
+        .trim()
+    : "";
+  if (officialDescription) promotion.officialDescription = officialDescription;
   return promotion;
+}
+
+export function extractSteamTags(html: string): string[] {
+  const $ = load(html);
+  return [
+    ...new Set(
+      $(".glance_tags .app_tag")
+        .toArray()
+        .map((element) => $(element).text().replace(/\s+/gu, " ").trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 export function extractPromotionEnd(
@@ -600,12 +620,35 @@ export class SteamProvider {
               storeHtml,
             );
           }
+        } else {
+          try {
+            const pageUrl = new URL(candidate.storeUrl);
+            pageUrl.search = new URLSearchParams({
+              cc: this.country.toLowerCase(),
+              l: this.language,
+            }).toString();
+            const pageResponse = await fetchWithRetry(pageUrl.toString(), {
+              headers: {
+                Cookie:
+                  "birthtime=0; lastagecheckage=1-January-1970; wants_mature_content=1",
+              },
+            });
+            storeHtml = await pageResponse.text();
+          } catch (error) {
+            // Temporary play is verified by Store Browse; tags are optional.
+            errors.push(
+              toReportError(error, "steam_enrichment", candidate.appId),
+            );
+          }
         }
 
         if (!promotion) {
           excluded += 1;
           continue;
         }
+
+        const tags = extractSteamTags(storeHtml);
+        if (tags.length) promotion.tags = tags;
 
         if (candidate.kind === "temporary_play") {
           const browseUrl = new URL(

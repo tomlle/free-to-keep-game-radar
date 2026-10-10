@@ -11,6 +11,8 @@ interface AppDetails {
   name?: string;
   is_free?: boolean;
   price_overview?: { final?: number };
+  short_description?: string;
+  genres?: Array<{ description?: string }>;
 }
 
 export interface NewsItem {
@@ -28,6 +30,8 @@ export interface PaidTransition {
   productId: string;
   title: string;
   storeUrl: string;
+  officialDescription?: string;
+  tags?: string[];
   announcementId: string;
   announcementUrl: string;
   announcedAt: string;
@@ -496,6 +500,7 @@ export async function scanPaidTransitions(
         throw new Error(
           "Steam news response is missing matching appid or newsitems",
         );
+      const productTransitions: PaidTransition[] = [];
       for (const item of news.appnews.newsitems) {
         if (!isOfficialSteamNews(productId, item)) continue;
         const isActive = activeProductIds.includes(productId);
@@ -503,7 +508,38 @@ export async function scanPaidTransitions(
           item.date * 1_000 >= Date.now() - 30 * 24 * 60 * 60 * 1_000;
         if (!isActive && !isRecent) continue;
         const transition = classifyPaidTransition(productId, app, item);
-        if (transition) transitions.push(transition);
+        if (transition) productTransitions.push(transition);
+      }
+      if (productTransitions.length) {
+        let localizedApp = app;
+        try {
+          const localizedResponse = await fetchWithRetry(
+            `https://store.steampowered.com/api/appdetails?appids=${productId}&cc=${country.toLowerCase()}&l=japanese`,
+          );
+          const localizedDetails = (await localizedResponse.json()) as Record<
+            string,
+            { success?: boolean; data?: AppDetails }
+          >;
+          if (localizedDetails[productId]?.success) {
+            localizedApp = localizedDetails[productId]?.data ?? app;
+          }
+        } catch {
+          // Description enrichment is optional; the verified announcement is
+          // still useful without it.
+        }
+        const officialDescription = localizedApp.short_description
+          ?.replace(/\s+/gu, " ")
+          .trim();
+        const tags = (localizedApp.genres ?? [])
+          .map((genre) => genre.description?.trim())
+          .filter((tag): tag is string => !!tag);
+        for (const transition of productTransitions) {
+          if (officialDescription) {
+            transition.officialDescription = officialDescription;
+          }
+          if (tags.length) transition.tags = tags;
+          transitions.push(transition);
+        }
       }
     } catch (error) {
       errors.push(toError(error, "steam_details", productId));

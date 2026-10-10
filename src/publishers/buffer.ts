@@ -1,4 +1,5 @@
 import type { CampaignState, RelativeFreePeriod } from "../types.js";
+import { selectGameDescription } from "../game-description.js";
 
 const BUFFER_API_URL = "https://api.buffer.com";
 const X_WEIGHTED_LENGTH_LIMIT = 280;
@@ -12,8 +13,11 @@ export interface BufferCredentials {
 }
 
 export interface PaidTransitionPost {
+  productId: string;
   title: string;
   storeUrl: string;
+  officialDescription?: string;
+  tags?: string[];
   notBeforeAt?: string;
   relativeFreePeriod?: RelativeFreePeriod;
 }
@@ -76,7 +80,7 @@ function formatJst(value: string): string {
 }
 
 export function buildPostText(campaign: CampaignState): string {
-  const render = (title: string): string => {
+  const render = (title: string, description?: string): string => {
     if (campaign.kind === "temporary_play") {
       const lines = [
         "一時プレイ無料🎮",
@@ -94,12 +98,8 @@ export function buildPostText(campaign: CampaignState): string {
         lines.push(`⏰ ${formatJst(campaign.startsAt)}から`);
       }
       lines.push("", "気になってたゲームを、この機会に遊んでみよう！");
-      lines.push(
-        "",
-        campaign.storeUrl,
-        "",
-        "#ゲーム無料プレイ #Steam #もろとこ",
-      );
+      if (description) lines.push("", description);
+      lines.push("", campaign.storeUrl);
       return lines.join("\n");
     }
 
@@ -112,25 +112,46 @@ export function buildPostText(campaign: CampaignState): string {
     if (campaign.endsAt) {
       lines.push(`⏰ ${formatJst(campaign.endsAt)}まで`);
     }
-    lines.push("", campaign.storeUrl, "", "#ゲーム無料配布 #Steam #もろとこ");
+    if (description) lines.push("", description);
+    lines.push("", campaign.storeUrl);
     return lines.join("\n");
   };
 
-  const complete = render(campaign.title);
+  let description = selectGameDescription(campaign);
+  const complete = render(campaign.title, description);
   if (xWeightedLength(complete) <= X_WEIGHTED_LENGTH_LIMIT) return complete;
 
   const segmenter = new Intl.Segmenter("ja", { granularity: "grapheme" });
+  if (description) {
+    let shortenedDescription = "";
+    for (const { segment } of segmenter.segment(description)) {
+      if (
+        xWeightedLength(
+          render(campaign.title, `${shortenedDescription}${segment}…`),
+        ) > X_WEIGHTED_LENGTH_LIMIT
+      ) {
+        break;
+      }
+      shortenedDescription += segment;
+    }
+    description = shortenedDescription ? `${shortenedDescription}…` : undefined;
+    const shortenedPost = render(campaign.title, description);
+    if (xWeightedLength(shortenedPost) <= X_WEIGHTED_LENGTH_LIMIT) {
+      return shortenedPost;
+    }
+  }
+
   let shortened = "";
   for (const { segment } of segmenter.segment(campaign.title)) {
     if (
-      xWeightedLength(render(`${shortened}${segment}…`)) >
+      xWeightedLength(render(`${shortened}${segment}…`, description)) >
       X_WEIGHTED_LENGTH_LIMIT
     ) {
       break;
     }
     shortened += segment;
   }
-  const result = render(`${shortened}…`);
+  const result = render(`${shortened}…`, description);
   if (xWeightedLength(result) > X_WEIGHTED_LENGTH_LIMIT) {
     throw new Error("X post template exceeds the weighted character limit");
   }
@@ -143,46 +164,61 @@ export function buildEndingReminderPostText(campaign: CampaignState): string {
   }
   const endsAt = campaign.endsAt;
 
-  const render = (title: string): string => {
+  const render = (title: string, description?: string): string => {
     const campaignType =
       campaign.kind === "temporary_play" ? "無料プレイ" : "無料配布";
-    const hashtags =
-      campaign.kind === "temporary_play"
-        ? "#ゲーム無料プレイ #Steam #もろとこ"
-        : "#ゲーム無料配布 #Steam #もろとこ";
     const callToAction =
       campaign.kind === "temporary_play"
         ? "遊び忘れに注意！"
         : "ライブラリへの追加忘れに注意！";
-    return [
+    const lines = [
       "まもなく終了⏰",
       "",
       `『${title}』`,
       `${campaignType}は ${formatJst(endsAt)}まで`,
       "",
       callToAction,
-      "",
-      campaign.storeUrl,
-      "",
-      hashtags,
-    ].join("\n");
+    ];
+    if (description) lines.push("", description);
+    lines.push("", campaign.storeUrl);
+    return lines.join("\n");
   };
 
-  const complete = render(campaign.title);
+  let description = selectGameDescription(campaign);
+  const complete = render(campaign.title, description);
   if (xWeightedLength(complete) <= X_WEIGHTED_LENGTH_LIMIT) return complete;
 
   const segmenter = new Intl.Segmenter("ja", { granularity: "grapheme" });
+  if (description) {
+    let shortenedDescription = "";
+    for (const { segment } of segmenter.segment(description)) {
+      if (
+        xWeightedLength(
+          render(campaign.title, `${shortenedDescription}${segment}…`),
+        ) > X_WEIGHTED_LENGTH_LIMIT
+      ) {
+        break;
+      }
+      shortenedDescription += segment;
+    }
+    description = shortenedDescription ? `${shortenedDescription}…` : undefined;
+    const shortenedPost = render(campaign.title, description);
+    if (xWeightedLength(shortenedPost) <= X_WEIGHTED_LENGTH_LIMIT) {
+      return shortenedPost;
+    }
+  }
+
   let shortened = "";
   for (const { segment } of segmenter.segment(campaign.title)) {
     if (
-      xWeightedLength(render(`${shortened}${segment}…`)) >
+      xWeightedLength(render(`${shortened}${segment}…`, description)) >
       X_WEIGHTED_LENGTH_LIMIT
     ) {
       break;
     }
     shortened += segment;
   }
-  const result = render(`${shortened}…`);
+  const result = render(`${shortened}…`, description);
   if (xWeightedLength(result) > X_WEIGHTED_LENGTH_LIMIT) {
     throw new Error("Ending-reminder X post exceeds the character limit");
   }
@@ -211,32 +247,47 @@ export function buildPaidTransitionPostText(
     );
     statusLine = `現在無料 → ${parts.month}月${parts.day}日以降に有料化予定`;
   }
-  const render = (title: string): string =>
-    [
-      "もうすぐ有料⚠️",
-      "",
-      `『${title}』`,
-      statusLine,
-      "",
-      transition.storeUrl,
-      "",
-      "#ゲーム無料配布 #Steam #もろとこ",
-    ].join("\n");
-  const complete = render(transition.title);
+  const render = (title: string, description?: string): string => {
+    const lines = ["もうすぐ有料⚠️", "", `『${title}』`, statusLine];
+    if (description) lines.push("", description);
+    lines.push("", transition.storeUrl);
+    return lines.join("\n");
+  };
+  let description = selectGameDescription(transition);
+  const complete = render(transition.title, description);
   if (xWeightedLength(complete) <= X_WEIGHTED_LENGTH_LIMIT) return complete;
 
   const segmenter = new Intl.Segmenter("ja", { granularity: "grapheme" });
+  if (description) {
+    let shortenedDescription = "";
+    for (const { segment } of segmenter.segment(description)) {
+      if (
+        xWeightedLength(
+          render(transition.title, `${shortenedDescription}${segment}…`),
+        ) > X_WEIGHTED_LENGTH_LIMIT
+      ) {
+        break;
+      }
+      shortenedDescription += segment;
+    }
+    description = shortenedDescription ? `${shortenedDescription}…` : undefined;
+    const shortenedPost = render(transition.title, description);
+    if (xWeightedLength(shortenedPost) <= X_WEIGHTED_LENGTH_LIMIT) {
+      return shortenedPost;
+    }
+  }
+
   let shortened = "";
   for (const { segment } of segmenter.segment(transition.title)) {
     if (
-      xWeightedLength(render(`${shortened}${segment}…`)) >
+      xWeightedLength(render(`${shortened}${segment}…`, description)) >
       X_WEIGHTED_LENGTH_LIMIT
     ) {
       break;
     }
     shortened += segment;
   }
-  const result = render(`${shortened}…`);
+  const result = render(`${shortened}…`, description);
   if (xWeightedLength(result) > X_WEIGHTED_LENGTH_LIMIT) {
     throw new Error(
       "Paid-transition X post exceeds the weighted character limit",

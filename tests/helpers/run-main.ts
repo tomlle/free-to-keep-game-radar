@@ -125,5 +125,8 @@ globalThis.fetch = async (input, init) => {
   }
   throw new Error(`Unmocked request: ${url}`);
 };
-if (paid) await import("../../src/paid-transition-main.js");
-else await import("../../src/main.js");
+if (paid)
+  await import(
+    new URL("../../src/paid-transition-main.js", import.meta.url).href
+  );
+else await import(new URL("../../src/main.js", import.meta.url).href);

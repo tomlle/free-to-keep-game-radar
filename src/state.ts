@@ -99,6 +99,10 @@ export function reconcilePromotions(
     if (active?.active) {
       active.kind = promotion.kind;
       active.title = promotion.title;
+      if (promotion.officialDescription) {
+        active.officialDescription = promotion.officialDescription;
+      }
+      if (promotion.tags?.length) active.tags = promotion.tags;
       active.storeUrl = promotion.storeUrl;
       active.initialPrice = promotion.initialPrice;
       active.currency = promotion.currency;
@@ -131,6 +135,10 @@ export function reconcilePromotions(
       postStatus: "pending",
       postAttempts: 0,
     };
+    if (promotion.officialDescription) {
+      campaign.officialDescription = promotion.officialDescription;
+    }
+    if (promotion.tags?.length) campaign.tags = promotion.tags;
     if (promotion.startsAt) campaign.startsAt = promotion.startsAt;
     if (promotion.endsAt) campaign.endsAt = promotion.endsAt;
 

@@ -115,10 +115,17 @@ describe("Steam scan resilience", () => {
       ],
     );
     assert.equal(scan.promotions[0]?.endsAt, undefined);
-    assert.equal(scan.errors.length, 1);
-    assert.equal(scan.errors[0]?.stage, "steam_enrichment");
-    assert.equal(scan.errors[0]?.severity, "warning");
-    assert.equal(scan.errors[0]?.productId, "100");
+    assert.equal(scan.errors.length, 2);
+    assert.ok(
+      scan.errors.every(
+        (error) =>
+          error.stage === "steam_enrichment" && error.severity === "warning",
+      ),
+    );
+    assert.deepEqual(
+      scan.errors.map((error) => error.productId),
+      ["100", "1621690"],
+    );
     assert.equal(scan.sourceHealthy, true);
   });
 

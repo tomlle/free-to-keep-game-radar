@@ -5,6 +5,7 @@ import {
   SteamProvider,
   parseSteamFeaturedCategories,
   extractPromotionEnd,
+  extractSteamTags,
   parseSteamSearchHtml,
   validateTemporaryPlayStoreItem,
   validateSteamAppDetails,
@@ -86,6 +87,7 @@ describe("Steam promotion parsing", () => {
       {
         type: "game",
         name: "Promo Game",
+        short_description: "  A <b>friendly</b> game.\n ",
         is_free: false,
         price_overview: {
           currency: "JPY",
@@ -100,6 +102,19 @@ describe("Steam promotion parsing", () => {
     assert.equal(promotion?.productId, "100");
     assert.equal(promotion?.title, "Promo Game");
     assert.equal(promotion?.kind, "free_to_keep");
+    assert.equal(promotion?.officialDescription, "A friendly game.");
+  });
+
+  it("extracts and deduplicates localized store tags", () => {
+    assert.deepEqual(
+      extractSteamTags(`
+        <div class="glance_tags popular_tags">
+          <a class="app_tag"> 心温まる </a>
+          <a class="app_tag">会話重視</a>
+          <a class="app_tag">心温まる</a>
+        </div>`),
+      ["心温まる", "会話重視"],
+    );
   });
 
   it("accepts a paid game listed for temporary free play", () => {
@@ -348,6 +363,11 @@ describe("real Steam promotional packages and free weekends", () => {
       }
       if (url.pathname === "/app/405640/")
         return new Response(fixture("pony-license.html"));
+      if (url.pathname === "/app/1621690/")
+        return new Response(
+          '<div class="glance_tags"><a class="app_tag">探索</a><a class="app_tag">サンドボックス</a></div>',
+        );
+      if (url.pathname === "/app/42/") return new Response("");
       if (url.pathname === "/IStoreBrowseService/GetItems/v1/") {
         const appId = JSON.parse(url.searchParams.get("input_json")!).ids[0]
           .appid;
@@ -368,6 +388,7 @@ describe("real Steam promotional packages and free weekends", () => {
     assert.equal(result.excluded, 1);
     assert.deepEqual(result.errors, []);
     assert.ok(result.promotions[1]?.endsAt);
+    assert.deepEqual(result.promotions[1]?.tags, ["探索", "サンドボックス"]);
     assert.ok(
       requests.some(
         (url) =>
